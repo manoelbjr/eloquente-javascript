@@ -34,7 +34,7 @@ Diferentes pedaços de um determinado programa interagem uns com os outros atrav
 
 {{index "public properties", "private properties", "access control", [method, interface]}}
 
-Tais pedaços são modelados usando ((objecto))s ((object))s.Sua interface consiste de um conjunto específico de métodos e propriedades. Propriedades que são parte da interface são chamadas interfaces _públicas_, ou _public_. As outras, das quais o código externo não deve tocar são chamadas _privadas_ ou _private_.
+Tais pedaços são modelados usando ((objecto))s ((object))s. Sua interface consiste de um conjunto específico de métodos e propriedades. Propriedades que são parte da interface são chamadas interfaces _públicas_, ou _public_. As outras, das quais o código externo não deve tocar são chamadas _privadas_ ou _private_.
 
 {{index "underscore character"}}
 
