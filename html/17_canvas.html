@@ -1,0 +1,754 @@
+<!doctype html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Desenhando em Canvas :: Eloquent JavaScript</title>
+  <link rel=stylesheet href="js/node_modules/codemirror/lib/codemirror.css">
+  <script src="js/acorn_codemirror.js"></script>
+  <link rel=stylesheet href="css/ejs.css">
+  <script src="js/sandbox.js"></script>
+  <script src="js/ejs.js"></script>
+  <script>var chapNum = 17;var sandboxLoadFiles = ["code/chapter/16_game.js","code/levels.js","code/chapter/17_canvas.js"];
+  </script>
+</head>
+
+<article>
+<nav><a href="16_game.html" title="previous chapter">◀</a> 
+  <a href="index.html" title="cover">◆</a> <a href="18_http.html" title="next chapter">▶</a>
+</nav>
+
+<h1><span class=chap_num>Chapter 17</span>Desenhando em Canvas</h1>
+
+<blockquote>
+
+<p><a class="p_ident" id="p_V8Vr3We1aA" href="#p_V8Vr3We1aA" tabindex="-1" role="presentation"></a>Desenhar é uma decepção.</p>
+
+<footer>M.C. Escher, <cite>citado por Bruno Ernst em The Magic Mirror de M.C. Escher</cite></footer>
+
+</blockquote><figure class="chapter framed"><img src="img/chapter_picture_17.jpg" alt="Imagem de um braço robótico desenhando no papel"></figure>
+
+<p><a class="p_ident" id="p_UD28ZFuPyP" href="#p_UD28ZFuPyP" tabindex="-1" role="presentation"></a>Os navegadores nos dão várias formas de posicionar gráficos. A forma mais fácil é usar estilos para posicionar e colorir elementos comuns do DOM. Isso pode te levar bem longe, como o jogo do <a href="jogo">capítulo anterior</a> mostra. Adicionando imagens de fundo parcialmente transparentes aos nós, podemos fazê-las parecer exatamente da forma que quisermos. É possivel até rotacionar ou inclinar nós com o estilo <code>transform</code>.</p>
+
+<p><a class="p_ident" id="p_aaRV0V7oEv" href="#p_aaRV0V7oEv" tabindex="-1" role="presentation"></a>Mas estaríamos usando o DOM para algo que não foi criado originalmente. Algumas tarefas, como desenhar uma linha entre pontos arbitrários, são extremamente estranhas de serem feitas com elementos comuns do HTML.</p>
+
+<p><a class="p_ident" id="p_AZVTUokUG1" href="#p_AZVTUokUG1" tabindex="-1" role="presentation"></a>Existe duas alternativas. A primeira é baseada no DOM, mas utiliza <em>Vetores Gráficos Escaláveis</em> (SVG) no lugar do HTML. Pense no SVG como uma forma de marcação de documentos que foca nas formas ao invés do texto. Você pode incorporar um documento SVG diretamente em um documento HTML ou inclui-lo com uma tag <code>&lt;img&gt;</code>.</p>
+
+<p><a class="p_ident" id="p_QERuRQtc7w" href="#p_QERuRQtc7w" tabindex="-1" role="presentation"></a>A segunda alternativa é chamada de <em>canvas</em>. Um canvas é somente um elemento DOM que encapsula uma figura. Ela fornece uma interface de programação para desenhar formas no espaço ocupado pelo nó. A principal diferença entre um canvas e uma figura SVG é que no SVG a descrição original das formas é preservada para que elas possam ser movidas ou redimensionadas a qualquer momento. Um canvas, por outro lado, converte as formas para pixels (pontos coloridos rasterizados) assim que são desenhadas e não se lembra do que esses pixels representam. A única forma de mover uma forma em um canvas é limpar o canvas (ou parte do canvas ao redor da forma) e redesenhá-lo com a forma em uma posição nova.</p>
+
+<h2><a class="h_ident" id="h_UPzm0CiZhQ" href="#h_UPzm0CiZhQ" tabindex="-1" role="presentation"></a>SVG</h2>
+
+<p><a class="p_ident" id="p_/cPp6lg8aq" href="#p_/cPp6lg8aq" tabindex="-1" role="presentation"></a>Esse livro não irá se aprofundar no SVG, mas vou explicar brevemente como isso funciona. No <a href="17_canvas.html#graphics_tradeoffs">final do capítulo</a>, vou voltar às diferenças que você deve considerar quando estiver se decidindo sobre qual mecanismo de desenho é apropriado para tal aplicação.</p>
+
+<p><a class="p_ident" id="p_/dqzovog8b" href="#p_/dqzovog8b" tabindex="-1" role="presentation"></a>Esse é um documento HTML que contém uma figura SVG simples:</p>
+
+<pre class="snippet cm-s-default" data-language="text/html"  data-sandbox="svg"><a class="c_ident" id="c_Pmy3lH0Cbh" href="#c_Pmy3lH0Cbh" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">p</span><span class="cm-tag cm-bracket">&gt;</span>Um HTML normal aqui.<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">p</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">svg</span> <span class="cm-attribute">xmlns</span>=<span class="cm-string">&quot;http://www.w3.org/2000/svg&quot;</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">circle</span> <span class="cm-attribute">r</span>=<span class="cm-string">&quot;50&quot;</span> <span class="cm-attribute">cx</span>=<span class="cm-string">&quot;50&quot;</span> <span class="cm-attribute">cy</span>=<span class="cm-string">&quot;50&quot;</span> <span class="cm-attribute">fill</span>=<span class="cm-string">&quot;red&quot;</span><span class="cm-tag cm-bracket">/&gt;</span>
+  <span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">rect</span> <span class="cm-attribute">x</span>=<span class="cm-string">&quot;120&quot;</span> <span class="cm-attribute">y</span>=<span class="cm-string">&quot;5&quot;</span> <span class="cm-attribute">width</span>=<span class="cm-string">&quot;90&quot;</span> <span class="cm-attribute">height</span>=<span class="cm-string">&quot;90&quot;</span>
+        <span class="cm-attribute">stroke</span>=<span class="cm-string">&quot;blue&quot;</span> <span class="cm-attribute">fill</span>=<span class="cm-string">&quot;none&quot;</span><span class="cm-tag cm-bracket">/&gt;</span>
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">svg</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<p><a class="p_ident" id="p_rHAtiv0ExB" href="#p_rHAtiv0ExB" tabindex="-1" role="presentation"></a>O atributo <code>xmlns</code> muda um elemento (e seus filhos) para um  <em>namespace XML</em>. Esse namespace, identificado por uma URL, especifica a forma que estamos usando atualmente. As tags <code>&lt;circle&gt;</code> e <code>&lt;rect&gt;</code>, que não existem no HTML, têm significado no SVG – elas desenham formas usando o estilo e a posição especificados por seus atributos.</p>
+
+<p><a class="p_ident" id="p_uAf1R+JXXF" href="#p_uAf1R+JXXF" tabindex="-1" role="presentation"></a>Essas tags criam elementos DOM, assim como as tags HTML, com quem os scripts interagem. Por exemplo, essa linha de código muda o elemento <code>&lt;circle&gt;</code> para ter a cor ciano:</p>
+
+<pre class="snippet cm-s-default" data-language="javascript"  data-sandbox="svg"><a class="c_ident" id="c_jx+UOHRvDL" href="#c_jx+UOHRvDL" tabindex="-1" role="presentation"></a><span class="cm-keyword">let</span> <span class="cm-def">circle</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;circle&quot;</span>);
+<span class="cm-variable">circle</span>.<span class="cm-property">setAttribute</span>(<span class="cm-string">&quot;fill&quot;</span>, <span class="cm-string">&quot;cyan&quot;</span>);</pre>
+
+<h2><a class="h_ident" id="h_a9uhLohcCk" href="#h_a9uhLohcCk" tabindex="-1" role="presentation"></a>O elemento canvas</h2>
+
+<p><a class="p_ident" id="p_stmRcA/CMJ" href="#p_stmRcA/CMJ" tabindex="-1" role="presentation"></a>Gráficos canvas podem ser desenhados dentro de um elemento <code>&lt;canvas&gt;</code>. Você pode dar os atributos de <code>width</code> (largura) e <code>height</code> (altura) a um elemento para determinar seu tamanho em pixels.</p>
+
+<p><a class="p_ident" id="p_pZNSFln3eE" href="#p_pZNSFln3eE" tabindex="-1" role="presentation"></a>Um novo canvas está vazio, o que significa que está completamente transparente e, portanto, aparece como um espaço vazio no documento.</p>
+
+<p><a class="p_ident" id="p_MaTfZp29ZT" href="#p_MaTfZp29ZT" tabindex="-1" role="presentation"></a>A tag <code>&lt;canvas&gt;</code> serve para permitir estilos diferentes de desenho. Para de fato acessar uma interface de desenho, primeiro precisamos criar um <em>context</em> (contexto), um objeto cujos métodos fornecem a interface de desenho. Atualmente existem dois estilos de desenho com grande suporte: <code>&quot;2d&quot;</code>  para gráficos de duas dimensões e <code>&quot;webgl&quot;</code> para gráficos com três dimensões através da interface OpenGL.</p>
+
+<p><a class="p_ident" id="p_a47rfWxP+G" href="#p_a47rfWxP+G" tabindex="-1" role="presentation"></a>Esse livro não vai falar sobre WebGL – vamos focar em duas dimensões. Mas se estiver interessado nos gráficos de três dimensões, te encorajo a dar uma olhada no WebGL. Ele dá uma interface bem direta aos gráficos no hardware e permite que você renderize cenas bem complicadas de forma eficiente, usando JavaScript.</p>
+
+<p><a class="p_ident" id="p_pGsACDKg2j" href="#p_pGsACDKg2j" tabindex="-1" role="presentation"></a>Você cria um contexto com o método <code>getContext</code> no elemento DOM <code>&lt;canvas&gt;</code>.</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_k39Jl/H+3T" href="#c_k39Jl/H+3T" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">p</span><span class="cm-tag cm-bracket">&gt;</span>Antes do canvas.<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">p</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span> <span class="cm-attribute">width</span>=<span class="cm-string">&quot;120&quot;</span> <span class="cm-attribute">height</span>=<span class="cm-string">&quot;60&quot;</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">p</span><span class="cm-tag cm-bracket">&gt;</span>Após o canvas.<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">p</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">canvas</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>);
+  <span class="cm-keyword">let</span> <span class="cm-def">context</span> <span class="cm-operator">=</span> <span class="cm-variable">canvas</span>.<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+  <span class="cm-variable">context</span>.<span class="cm-property">fillStyle</span> <span class="cm-operator">=</span> <span class="cm-string">&quot;red&quot;</span>;
+  <span class="cm-variable">context</span>.<span class="cm-property">fillRect</span>(<span class="cm-number">10</span>, <span class="cm-number">10</span>, <span class="cm-number">100</span>, <span class="cm-number">50</span>);
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<p><a class="p_ident" id="p_Gkm4Je3xvR" href="#p_Gkm4Je3xvR" tabindex="-1" role="presentation"></a>Após criar o objeto de contexto, o exemplo desenha um retângulo vermelho de 100 pixels de largura e 50 pixels de altura, com seu canto superior esquerdo nas coordenadas (10,10).</p>
+
+<p><a class="p_ident" id="p_tW94jakMwl" href="#p_tW94jakMwl" tabindex="-1" role="presentation"></a>Assim como no HTML (e no SVG), o sistema de coordenadas que o canvas usa posiciona (0,0) no canto superior esquerdo, e o eixo y positivo começa dali. Logo, (10,10) fica 10 pixels abaixo e à direita do canto superior esquerdo.</p>
+
+<h2 id="fill_stroke"><a class="h_ident" id="h_ETts1JKlAb" href="#h_ETts1JKlAb" tabindex="-1" role="presentation"></a>Linhas e superfícies</h2>
+
+<p><a class="p_ident" id="p_iapMmKSxPB" href="#p_iapMmKSxPB" tabindex="-1" role="presentation"></a>Na interface do canvas, uma forma pode ser <em>preenchida</em>, o que significa que é dada uma certa cor à sua área, ou pode ser <em>contornada</em>, o que significa que uma linha é desenhada junto de sua borda. A mesma terminologia é usada pelo SVG.</p>
+
+<p><a class="p_ident" id="p_KnqAuZdCKt" href="#p_KnqAuZdCKt" tabindex="-1" role="presentation"></a>O método <code>fillRect</code> preenche um retângulo. Ele pega primeiro as coordenadas em x e y do canto superior esquerdo do retângulo, e então sua largura, e depois sua altura. Um método similar, <code>strokeRect</code>, desenha o contorno de um retângulo.</p>
+
+<p><a class="p_ident" id="p_FwWNN5FxZU" href="#p_FwWNN5FxZU" tabindex="-1" role="presentation"></a>Nenhum método precisa de outros parâmetros. A cor de preenchimento, a espessura do contorno e aí em diante não são determinados por um argumento no método (como já era de se esperar), mas por propriedades do contexto do objeto.</p>
+
+<p><a class="p_ident" id="p_8s52P8Hdh4" href="#p_8s52P8Hdh4" tabindex="-1" role="presentation"></a>A propriedade <code>fillStyle</code> controla a maneira em que as formas são preenchidas. Ela pode ser definida em um texto que especifica uma cor, usando a notação de cor usada pelo CSS.</p>
+
+<p><a class="p_ident" id="p_hN0jq8E6sQ" href="#p_hN0jq8E6sQ" tabindex="-1" role="presentation"></a>A propriedade <code>strokeStyle</code> funciona de forma semelhante, mas determina a cor usada por uma linha de contorno. A largura dessa linha é determinada pela propriedade <code>lineWidth</code>, que pode conter qualquer número positivo.</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_RXlmHDTr07" href="#c_RXlmHDTr07" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">strokeStyle</span> <span class="cm-operator">=</span> <span class="cm-string">&quot;blue&quot;</span>;
+  <span class="cm-variable">cx</span>.<span class="cm-property">strokeRect</span>(<span class="cm-number">5</span>, <span class="cm-number">5</span>, <span class="cm-number">50</span>, <span class="cm-number">50</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">lineWidth</span> <span class="cm-operator">=</span> <span class="cm-number">5</span>;
+  <span class="cm-variable">cx</span>.<span class="cm-property">strokeRect</span>(<span class="cm-number">135</span>, <span class="cm-number">5</span>, <span class="cm-number">50</span>, <span class="cm-number">50</span>);
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<p><a class="p_ident" id="p_Q51KRzRTOs" href="#p_Q51KRzRTOs" tabindex="-1" role="presentation"></a>Quando nenhum atributo de <code>width</code> (largura) ou <code>height</code> (altura) é especificado, como no exemplo, um elemento do canvas adquire uma largura padrão de 300 pixels e altura de 150 pixels.</p>
+
+<h2><a class="h_ident" id="h_LAU6ta28cp" href="#h_LAU6ta28cp" tabindex="-1" role="presentation"></a>Caminhos</h2>
+
+<p><a class="p_ident" id="p_K1BTU3Q0R3" href="#p_K1BTU3Q0R3" tabindex="-1" role="presentation"></a>Um caminho é uma sequência de linhas. Uma interface canvas 2D usa uma abordagem peculiar para descrever tal caminho. É feita inteiramente através de efeitos colaterais. Caminhos não são valores que podem ser armazenados e passados para a frente. Ao invés disso, se quiser fazer algo com um caminho, você usa uma sequência de chamadas de método para descrever sua forma.</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_q5tyCN7mU3" href="#c_q5tyCN7mU3" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">beginPath</span>();
+  <span class="cm-keyword">for</span> (<span class="cm-keyword">let</span> <span class="cm-def">y</span> <span class="cm-operator">=</span> <span class="cm-number">10</span>; <span class="cm-variable">y</span> <span class="cm-operator">&lt;</span> <span class="cm-number">100</span>; <span class="cm-variable">y</span> <span class="cm-operator">+=</span> <span class="cm-number">10</span>) {
+    <span class="cm-variable">cx</span>.<span class="cm-property">moveTo</span>(<span class="cm-number">10</span>, <span class="cm-variable">y</span>);
+    <span class="cm-variable">cx</span>.<span class="cm-property">lineTo</span>(<span class="cm-number">90</span>, <span class="cm-variable">y</span>);
+  }
+  <span class="cm-variable">cx</span>.<span class="cm-property">stroke</span>();
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<p><a class="p_ident" id="p_io0Ulcf4jG" href="#p_io0Ulcf4jG" tabindex="-1" role="presentation"></a>Esse exemplo cria um caminho com um número de segmentos de linhas horizontais e então contorna usando o método <code>stroke</code>. Cada segmento criado com o <code>lineTo</code> começa na posição <em>atual</em> do caminho. Essa posição geralmente está no final do último segmento, a não ser que a <code>moveTo</code> tenha sido chamada. Nesse caso, o próximo segmento teria início na posição passada para a <code>moveTo</code>.</p>
+
+<p><a class="p_ident" id="p_V7XOmSIkS/" href="#p_V7XOmSIkS/" tabindex="-1" role="presentation"></a>Quando estiver preenchendo um caminho (usando o método <code>fill</code>), cada forma é preenchida separadamente. Um caminho pode conter várias formas – cada movimento do método <code>moveTo</code> inicia uma nova. Mas o caminho precisa ser <em>fechado</em> (o que quer dizer que seu início e fim estão na mesma posição) antes de ser preenchido. Se o caminho já não é fechado, uma linha é adicionada do seu final para seu começo, e a forma concluída pelo caminho completado é preenchida.</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_dKfK5v1gw2" href="#c_dKfK5v1gw2" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">beginPath</span>();
+  <span class="cm-variable">cx</span>.<span class="cm-property">moveTo</span>(<span class="cm-number">50</span>, <span class="cm-number">10</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">lineTo</span>(<span class="cm-number">10</span>, <span class="cm-number">70</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">lineTo</span>(<span class="cm-number">90</span>, <span class="cm-number">70</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">fill</span>();
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<p><a class="p_ident" id="p_WJZ6S3iTpG" href="#p_WJZ6S3iTpG" tabindex="-1" role="presentation"></a>Esse exemplo desenha um triângulo preenchido. Note que somente dois dos lados do triângulo são desenhados de forma explícita. O terceiro, do canto inferior direito ao superior, está implícito e não estaria lá quando você contornasse o caminho.</p>
+
+<p><a class="p_ident" id="p_G1MxrPIVh0" href="#p_G1MxrPIVh0" tabindex="-1" role="presentation"></a>Você também pode usar o método <code>closePath</code> para fechar um caminho de forma explícita adicionando uma linha de segmento de volta ao início do caminho. Esse segmento <em>é</em> desenhado quando estiver contornando o caminho.</p>
+
+<h2><a class="h_ident" id="h_9hC2009SxC" href="#h_9hC2009SxC" tabindex="-1" role="presentation"></a>Curvas</h2>
+
+<p><a class="p_ident" id="p_9rBs1+quS+" href="#p_9rBs1+quS+" tabindex="-1" role="presentation"></a>Um caminho também pode conter linhas curvadas. Esses são, infelizmente, mais complicadas de desenhar.</p>
+
+<p><a class="p_ident" id="p_QajgPFTtG6" href="#p_QajgPFTtG6" tabindex="-1" role="presentation"></a>O método <code>quadraticCurveTo</code> desenha uma curva em determinado ponto. Para determinar a curvatura da linha, o método gera um ponto de controle, assim como um ponto de destino. Imagine que esse ponto de controle está <em>atraindo</em> a linha, dando a ela sua curva. A linha não vai atravessar o ponto de controle, mas sua direção nos pontos de início e final agirá de forma que uma reta nessa direção apontaria para o ponto de controle. O exemplo a seguir ilustra isso:</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_Jq9+Wmbm3J" href="#c_Jq9+Wmbm3J" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">beginPath</span>();
+  <span class="cm-variable">cx</span>.<span class="cm-property">moveTo</span>(<span class="cm-number">10</span>, <span class="cm-number">90</span>);
+  <span class="cm-comment">// control=(60,10) goal=(90,90)</span>
+  <span class="cm-variable">cx</span>.<span class="cm-property">quadraticCurveTo</span>(<span class="cm-number">60</span>, <span class="cm-number">10</span>, <span class="cm-number">90</span>, <span class="cm-number">90</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">lineTo</span>(<span class="cm-number">60</span>, <span class="cm-number">10</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">closePath</span>();
+  <span class="cm-variable">cx</span>.<span class="cm-property">stroke</span>();
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<p><a class="p_ident" id="p_dER05TWRrc" href="#p_dER05TWRrc" tabindex="-1" role="presentation"></a>Desenhamos uma (curva quadrática) da esquerda para a direita, com (60,10) como ponto de controle, e então desenhamos dois segmentos de linha atravessando esse ponto de controle e voltando ao início da linha. O resultado lembra a insígnia de <em>Star Trek</em> de certa forma. Você pode ver o efeito do ponto de controle: as linhas deixando os cantos inferiores começam na direção do ponto de controle e então se curvam em direção ao seu alvo.</p>
+
+<p><a class="p_ident" id="p_uEaTOCZe+z" href="#p_uEaTOCZe+z" tabindex="-1" role="presentation"></a>O método <code>bezierCurveTo</code> desenha uma curva semelhante. Ao invés de apenas um ponto de controle, ele tem dois – um para cada um dos pontos de extremidade da linha. Aqui está um rascunho semelhante para ilustrar o comportamento de tal curva:</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_88jydjz4KB" href="#c_88jydjz4KB" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">beginPath</span>();
+  <span class="cm-variable">cx</span>.<span class="cm-property">moveTo</span>(<span class="cm-number">10</span>, <span class="cm-number">90</span>);
+  <span class="cm-comment">// control1=(10,10) control2=(90,10) goal=(50,90)</span>
+  <span class="cm-variable">cx</span>.<span class="cm-property">bezierCurveTo</span>(<span class="cm-number">10</span>, <span class="cm-number">10</span>, <span class="cm-number">90</span>, <span class="cm-number">10</span>, <span class="cm-number">50</span>, <span class="cm-number">90</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">lineTo</span>(<span class="cm-number">90</span>, <span class="cm-number">10</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">lineTo</span>(<span class="cm-number">10</span>, <span class="cm-number">10</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">closePath</span>();
+  <span class="cm-variable">cx</span>.<span class="cm-property">stroke</span>();
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<p><a class="p_ident" id="p_tEDFJaOts/" href="#p_tEDFJaOts/" tabindex="-1" role="presentation"></a>Os dois pontos de controle especificam a direção em ambos os finais da curva. Quanto mais longe eles forem de seu ponto correspondente, mais a curva vai “pender” naquela direção.</p>
+
+<p><a class="p_ident" id="p_eZ2ioQcHVe" href="#p_eZ2ioQcHVe" tabindex="-1" role="presentation"></a>Pode ser difícil trabalhar com tais curvas – nem sempre é claro como encontrar os pontos de controle que gerem a forma que você está procurando. Às vezes, você pode computá-los, e às vezes você só terá que encontrar um valor que se encaixe por tentativa e erro.</p>
+
+<p><a class="p_ident" id="p_O6uGfk/ctV" href="#p_O6uGfk/ctV" tabindex="-1" role="presentation"></a>O método <code>arc</code> é uma forma de desenhar uma linha que curve junto da borda de um círculo. Ele leva um par de coordenadas para o centro do arco, um raio, e então um ângulo de início e final.</p>
+
+<p><a class="p_ident" id="p_mmu5NZjAQU" href="#p_mmu5NZjAQU" tabindex="-1" role="presentation"></a>Esses últimos dois parâmetros tornam possível desenhar apenas parte do círculo. Os ângulos são medidos em radianos, não graus. Isso significa que um círculo completo tem um ângulo de 2π, ou <code>2 * Math.PI</code>, o que dá cerca de 6,28. O ângulo começa contando no ponto à direita do centro do círculo e segue o sentido horário dali. Você pode usar o começo como 0 e terminar maior que 2π (digamos que 7) para desenhar um círculo completo.</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_LopNVujEda" href="#c_LopNVujEda" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">beginPath</span>();
+  <span class="cm-comment">// center=(50,50) radius=40 angle=0 to 7</span>
+  <span class="cm-variable">cx</span>.<span class="cm-property">arc</span>(<span class="cm-number">50</span>, <span class="cm-number">50</span>, <span class="cm-number">40</span>, <span class="cm-number">0</span>, <span class="cm-number">7</span>);
+  <span class="cm-comment">// center=(150,50) radius=40 angle=0 to ½π</span>
+  <span class="cm-variable">cx</span>.<span class="cm-property">arc</span>(<span class="cm-number">150</span>, <span class="cm-number">50</span>, <span class="cm-number">40</span>, <span class="cm-number">0</span>, <span class="cm-number">0.5</span> <span class="cm-operator">*</span> <span class="cm-variable">Math</span>.<span class="cm-property">PI</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">stroke</span>();
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<p><a class="p_ident" id="p_tUqtZDoLAe" href="#p_tUqtZDoLAe" tabindex="-1" role="presentation"></a>O resultado contém uma linha da direita do círculo completo (primeira chamada do <code>arc</code>) para a direita de um quarto do círculo (segunda chamada). Como outros métodos de desenho de caminho, uma linha desenhada com um <code>arc</code> é conectada ao segmento de caminho anterior. Você pode chamar o <code>moveTo</code> ou começar um novo caminho para evitar isso.</p>
+
+<h2 id="pie_chart"><a class="h_ident" id="h_kAxm986Wk2" href="#h_kAxm986Wk2" tabindex="-1" role="presentation"></a>Desenhando um gráfico de pizza</h2>
+
+<p><a class="p_ident" id="p_BqtbvlN86e" href="#p_BqtbvlN86e" tabindex="-1" role="presentation"></a>Imagine que você acabou de conseguir um emprego na EconomiCorp, Inc., e sua primeira tarefa é desenhar um gráfico de pizza de seus resultados da pesquisa de satisfação do consumidor.</p>
+
+<p><a class="p_ident" id="p_/48ENDUU3A" href="#p_/48ENDUU3A" tabindex="-1" role="presentation"></a>A variável <code>results</code> contém um array de objetos que representa as respostas da pesquisa.</p>
+
+<pre class="snippet cm-s-default" data-language="javascript"  data-sandbox="pie"><a class="c_ident" id="c_QRqIdf22c0" href="#c_QRqIdf22c0" tabindex="-1" role="presentation"></a><span class="cm-keyword">const</span> <span class="cm-def">results</span> <span class="cm-operator">=</span> [
+  {<span class="cm-property">name</span>: <span class="cm-string">&quot;Satisfatorio&quot;</span>, <span class="cm-property">count</span>: <span class="cm-number">1043</span>, <span class="cm-property">color</span>: <span class="cm-string">&quot;lightblue&quot;</span>},
+  {<span class="cm-property">name</span>: <span class="cm-string">&quot;Neutro&quot;</span>, <span class="cm-property">count</span>: <span class="cm-number">563</span>, <span class="cm-property">color</span>: <span class="cm-string">&quot;lightgreen&quot;</span>},
+  {<span class="cm-property">name</span>: <span class="cm-string">&quot;Insatisfatorio&quot;</span>, <span class="cm-property">count</span>: <span class="cm-number">510</span>, <span class="cm-property">color</span>: <span class="cm-string">&quot;pink&quot;</span>},
+  {<span class="cm-property">name</span>: <span class="cm-string">&quot;Sem comentario&quot;</span>, <span class="cm-property">count</span>: <span class="cm-number">175</span>, <span class="cm-property">color</span>: <span class="cm-string">&quot;silver&quot;</span>}
+];</pre>
+
+<p><a class="p_ident" id="p_lH/7O5nAEP" href="#p_lH/7O5nAEP" tabindex="-1" role="presentation"></a>Para desenhar um gráfico de pizza, desenhamos um número de fatias de pizza, cada um feito de um arco e um par de linhas até o centro desse arquivo. Podemos computar o ângulo usado em cada arco dividindo um círculo inteiro (2π) pelo total do número de respostas e então multiplicando esse número (o ângulo por resposta) pelo número de pessoas que escolheram determinada opção.</p>
+
+<pre class="snippet cm-s-default" data-language="text/html"  data-sandbox="pie"><a class="c_ident" id="c_cGQ2KMb9zb" href="#c_cGQ2KMb9zb" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span> <span class="cm-attribute">width</span>=<span class="cm-string">&quot;200&quot;</span> <span class="cm-attribute">height</span>=<span class="cm-string">&quot;200&quot;</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+  <span class="cm-keyword">let</span> <span class="cm-def">total</span> <span class="cm-operator">=</span> <span class="cm-variable">results</span>
+    .<span class="cm-property">reduce</span>((<span class="cm-def">sum</span>, {<span class="cm-def">count</span>}) <span class="cm-operator">=&gt;</span> <span class="cm-variable-2">sum</span> <span class="cm-operator">+</span> <span class="cm-variable-2">count</span>, <span class="cm-number">0</span>);
+  <span class="cm-comment">// começa por cima</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">currentAngle</span> <span class="cm-operator">=</span> <span class="cm-operator">-</span><span class="cm-number">0.5</span> <span class="cm-operator">*</span> <span class="cm-variable">Math</span>.<span class="cm-property">PI</span>;
+  <span class="cm-keyword">for</span> (<span class="cm-keyword">let</span> <span class="cm-def">result</span> <span class="cm-keyword">of</span> <span class="cm-variable">results</span>) {
+    <span class="cm-keyword">let</span> <span class="cm-def">sliceAngle</span> <span class="cm-operator">=</span> (<span class="cm-variable">result</span>.<span class="cm-property">count</span> <span class="cm-operator">/</span> <span class="cm-variable">total</span>) <span class="cm-operator">*</span> <span class="cm-number">2</span> <span class="cm-operator">*</span> <span class="cm-variable">Math</span>.<span class="cm-property">PI</span>;
+    <span class="cm-variable">cx</span>.<span class="cm-property">beginPath</span>();
+    <span class="cm-comment">// centro=100,100, raio=100</span>
+    <span class="cm-comment">// do ângulo atual, sentido horário do ângulo da fatia</span>
+    <span class="cm-variable">cx</span>.<span class="cm-property">arc</span>(<span class="cm-number">100</span>, <span class="cm-number">100</span>, <span class="cm-number">100</span>,
+           <span class="cm-variable">currentAngle</span>, <span class="cm-variable">currentAngle</span> <span class="cm-operator">+</span> <span class="cm-variable-2">sliceAngle</span>);
+    <span class="cm-variable">currentAngle</span> <span class="cm-operator">+=</span> <span class="cm-variable-2">sliceAngle</span>;
+    <span class="cm-variable">cx</span>.<span class="cm-property">lineTo</span>(<span class="cm-number">100</span>, <span class="cm-number">100</span>);
+    <span class="cm-variable">cx</span>.<span class="cm-property">fillStyle</span> <span class="cm-operator">=</span> <span class="cm-variable">result</span>.<span class="cm-property">color</span>;
+    <span class="cm-variable">cx</span>.<span class="cm-property">fill</span>();
+  }
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<p><a class="p_ident" id="p_IXyEsVCIYj" href="#p_IXyEsVCIYj" tabindex="-1" role="presentation"></a>Só que um gráfico não nos dizer o que cada fatia significa não é muito útil. Precisamos de uma forma de desenhar texto no canvas.</p>
+
+<h2><a class="h_ident" id="h_buumVsDzyv" href="#h_buumVsDzyv" tabindex="-1" role="presentation"></a>Texto</h2>
+
+<p><a class="p_ident" id="p_dJ1j+PF7v4" href="#p_dJ1j+PF7v4" tabindex="-1" role="presentation"></a>Um canvas desenhado em contexto 2D contém os métodos <code>fillText</code> e <code>strokeText</code>. O segundo pode ser útil para delinear letras, mas geralmente o <code>fillText</code> é o que você precisa. Ele vai preencher o delineado de determinado texto com a <code>fillColor</code> atual.</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_98ibAaDrt/" href="#c_98ibAaDrt/" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">font</span> <span class="cm-operator">=</span> <span class="cm-string">&quot;28px Georgia&quot;</span>;
+  <span class="cm-variable">cx</span>.<span class="cm-property">fillStyle</span> <span class="cm-operator">=</span> <span class="cm-string">&quot;fuchsia&quot;</span>;
+  <span class="cm-variable">cx</span>.<span class="cm-property">fillText</span>(<span class="cm-string">&quot;Também consigo desenhar texto!&quot;</span>, <span class="cm-number">10</span>, <span class="cm-number">50</span>);
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<p><a class="p_ident" id="p_GzjRoNc4Lh" href="#p_GzjRoNc4Lh" tabindex="-1" role="presentation"></a>Você pode especificar o tamanho, estilo e fonte do texto com a propriedade <code>font</code>. Esse exemplo dá um tamanho e tipo para a fonte. Também é possível adicionar <code>italic</code> ou <code>bold</code> no início da string para selecionar um estilo.</p>
+
+<p><a class="p_ident" id="p_yxMGLVy0ns" href="#p_yxMGLVy0ns" tabindex="-1" role="presentation"></a>Os últimos dois argumentos para <code>fillText</code> e <code>strokeText</code> determinam a posição que a fonte é desenhada. Por padrão, eles indicam a posição do início da linha de base alfabética do texto, que é a linha que as letras se “apoiam”, sem contar as partes suspensas em letras como <em>j</em> ou <em>p</em>. Você pode mudar a posição horizontal definindo a propriedade <code>textAlign</code> para <code>&quot;end&quot;</code> ou <code>&quot;center&quot;</code> e a posição vertical definindo a <code>textBaseline</code> para <code>&quot;top&quot;</code>, <code>&quot;middle&quot;</code> ou <code>&quot;bottom&quot;</code>.</p>
+
+<p><a class="p_ident" id="p_w2l0N4IzDG" href="#p_w2l0N4IzDG" tabindex="-1" role="presentation"></a>Vamos voltar ao gráfico de pizza e ao problema de rotular as fatias nos <a href="17_canvas.html#exercise_pie_chart">exercícios</a> ao final do capítulo.</p>
+
+<h2><a class="h_ident" id="h_FLG7vYMKEf" href="#h_FLG7vYMKEf" tabindex="-1" role="presentation"></a>Imagens</h2>
+
+<p><a class="p_ident" id="p_AdEfPHSap6" href="#p_AdEfPHSap6" tabindex="-1" role="presentation"></a>Nos gráficos computacionais, uma distinção costuma ser feita entre gráficos tipo <em>vector</em> e <em>bitmap</em>. O primeiro é o que estivemos fazendo até então nesse capítulo – especificando uma figura dando uma descrição lógica de formas. Gráficos bitmap, por outro lado, não especificam as formas reais, mas trabalham com pixels (grupos de pontos coloridos) ao invés disso.</p>
+
+<p><a class="p_ident" id="p_9Wj7nnfvms" href="#p_9Wj7nnfvms" tabindex="-1" role="presentation"></a>O método <code>drawImage</code> nos permite desenhar pixels dentro de um canvas. Esses pixels podem se originar de um elemento <code>&lt;img&gt;</code> ou de outro canvas. O exemplo em seguida cria um elemento <code>&lt;img&gt;</code> desanexado e carrega um arquivo de imagem dentro dela. Mas isso não pode começar a desenhar imediatamente a partir dessa figura porque o browser pode não ter carregado ainda. Para lidar com isso, registramos um event handler <code>&quot;load&quot;</code> e desenhamos após a imagem ter carregado.</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_Uzn6msw1dJ" href="#c_Uzn6msw1dJ" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+  <span class="cm-keyword">let</span> <span class="cm-def">img</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">createElement</span>(<span class="cm-string">&quot;img&quot;</span>);
+  <span class="cm-variable">img</span>.<span class="cm-property">src</span> <span class="cm-operator">=</span> <span class="cm-string">&quot;img/hat.png&quot;</span>;
+  <span class="cm-variable">img</span>.<span class="cm-property">addEventListener</span>(<span class="cm-string">&quot;load&quot;</span>, () <span class="cm-operator">=&gt;</span> {
+    <span class="cm-keyword">for</span> (<span class="cm-keyword">let</span> <span class="cm-def">x</span> <span class="cm-operator">=</span> <span class="cm-number">10</span>; <span class="cm-variable-2">x</span> <span class="cm-operator">&lt;</span> <span class="cm-number">200</span>; <span class="cm-variable-2">x</span> <span class="cm-operator">+=</span> <span class="cm-number">30</span>) {
+      <span class="cm-variable">cx</span>.<span class="cm-property">drawImage</span>(<span class="cm-variable">img</span>, <span class="cm-variable-2">x</span>, <span class="cm-number">10</span>);
+    }
+  });
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<p><a class="p_ident" id="p_iXiGUbdn8u" href="#p_iXiGUbdn8u" tabindex="-1" role="presentation"></a>Por padrão, o <code>drawImage</code> desenhará a imagem em seu tamanho original. Você também pode usar dois argumentos adicionais para definir larguras e alturas diferentes.</p>
+
+<p><a class="p_ident" id="p_XhbdjNmUxo" href="#p_XhbdjNmUxo" tabindex="-1" role="presentation"></a>Quando o <code>drawImage</code> tiver <em>nove</em> argumentos, pode ser usado para desenhar apenas um fragmento de uma imagem. Do segundo ao quinto argumento indicamos o retângulo (x, y, largura e altura) na imagem fonte que deve ser copiada, e do sexto ao nono argumento definimos o retângulo (no canvas) para o qual ele deve ser copiado.</p>
+
+<p><a class="p_ident" id="p_xLFn75yxy8" href="#p_xLFn75yxy8" tabindex="-1" role="presentation"></a>Ele pode ser usado para agrupar diversos <em>sprites</em> (elementos de imagem) dentro de uma única imagem e então desenhar só a parte que você precisa. Por exemplo, temos essa imagem contendo um personagem de jogo em várias posições:</p>
+
+<p><a class="p_ident" id="p_vuH/98YnmS" href="#p_vuH/98YnmS" tabindex="-1" role="presentation"></a>{{figure {url: “img/player_big.png”, alt: “Várias poses de um personagem”,width: “6cm”, [animation, “platform game”]}}}</p>
+
+<p><a class="p_ident" id="p_BWRz7p6YbE" href="#p_BWRz7p6YbE" tabindex="-1" role="presentation"></a>Alternando a pose em que desenhamos, podemos mostrar uma animação que parece um personagem caminhando.</p>
+
+<p><a class="p_ident" id="p_/zqhIPGmXH" href="#p_/zqhIPGmXH" tabindex="-1" role="presentation"></a>Para animar uma figura em um canvas, o método <code>clearRect</code> é útil. Ele lembra o <code>fillRect</code>, mas ao invés de colorir o retângulo, ele o torna transparente, removendo os pixels desenhados anteriormente.</p>
+
+<p><a class="p_ident" id="p_VeNF21M0iE" href="#p_VeNF21M0iE" tabindex="-1" role="presentation"></a>Sabemos que cada <em>sprite</em>, cada subfigura, tem 24 pixels de largura e 30 pixels de altura. O código a seguir carrega a imagem e então define um intervalo (temporizador repetitivo) para desenhar o próximo quadro:</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_RVXqRkizq0" href="#c_RVXqRkizq0" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+  <span class="cm-keyword">let</span> <span class="cm-def">img</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">createElement</span>(<span class="cm-string">&quot;img&quot;</span>);
+  <span class="cm-variable">img</span>.<span class="cm-property">src</span> <span class="cm-operator">=</span> <span class="cm-string">&quot;img/player.png&quot;</span>;
+  <span class="cm-keyword">let</span> <span class="cm-def">spriteW</span> <span class="cm-operator">=</span> <span class="cm-number">24</span>, <span class="cm-def">spriteH</span> <span class="cm-operator">=</span> <span class="cm-number">30</span>;
+  <span class="cm-variable">img</span>.<span class="cm-property">addEventListener</span>(<span class="cm-string">&quot;load&quot;</span>, () <span class="cm-operator">=&gt;</span> {
+    <span class="cm-keyword">let</span> <span class="cm-def">cycle</span> <span class="cm-operator">=</span> <span class="cm-number">0</span>;
+    <span class="cm-variable">setInterval</span>(() <span class="cm-operator">=&gt;</span> {
+      <span class="cm-variable">cx</span>.<span class="cm-property">clearRect</span>(<span class="cm-number">0</span>, <span class="cm-number">0</span>, <span class="cm-variable">spriteW</span>, <span class="cm-variable">spriteH</span>);
+      <span class="cm-variable">cx</span>.<span class="cm-property">drawImage</span>(<span class="cm-variable">img</span>,
+                   <span class="cm-comment">// retângulo original</span>
+                   <span class="cm-variable-2">cycle</span> <span class="cm-operator">*</span> <span class="cm-variable">spriteW</span>, <span class="cm-number">0</span>, <span class="cm-variable">spriteW</span>, <span class="cm-variable">spriteH</span>,
+                   <span class="cm-comment">// retângulo de destino</span>
+                   <span class="cm-number">0</span>,               <span class="cm-number">0</span>, <span class="cm-variable">spriteW</span>, <span class="cm-variable">spriteH</span>);
+      <span class="cm-variable-2">cycle</span> <span class="cm-operator">=</span> (<span class="cm-variable-2">cycle</span> <span class="cm-operator">+</span> <span class="cm-number">1</span>) <span class="cm-operator">%</span> <span class="cm-number">8</span>;
+    }, <span class="cm-number">120</span>);
+  });
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<p><a class="p_ident" id="p_oKBJTEgGG0" href="#p_oKBJTEgGG0" tabindex="-1" role="presentation"></a>O <code>cycle</code> conecta nossa posição na animação. A cada quadro, ele é incrementado e então resetado entre 0 e 7 através do operador restante. Essa conexão é então usada para computar a coordenada x que o sprite da posição atual tem na figura.</p>
+
+<h2><a class="h_ident" id="h_PopGEATFRo" href="#h_PopGEATFRo" tabindex="-1" role="presentation"></a>Transformação</h2>
+
+<p><a class="p_ident" id="p_SkmMs1CqK4" href="#p_SkmMs1CqK4" tabindex="-1" role="presentation"></a>Mas e se quisermos que nosso personagem ande a partir da esquerda ao invés da direita? Podemos desenhar outro conjunto de sprites, é claro. Mas podemos também instruir o canvas a desenhar a figura na ordem inversa.</p>
+
+<p><a class="p_ident" id="p_ioXkcuM08K" href="#p_ioXkcuM08K" tabindex="-1" role="presentation"></a>Chamar o método <code>scale</code> vai mudar a escala de tudo o que for desenhado. Esse método leva dois parâmetros, um para definir uma escala horizontal e outro para definir uma escala vertical.</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_Ih3Ewav/dQ" href="#c_Ih3Ewav/dQ" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">scale</span>(<span class="cm-number">3</span>, <span class="cm-number">.5</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">beginPath</span>();
+  <span class="cm-variable">cx</span>.<span class="cm-property">arc</span>(<span class="cm-number">50</span>, <span class="cm-number">50</span>, <span class="cm-number">40</span>, <span class="cm-number">0</span>, <span class="cm-number">7</span>);
+  <span class="cm-variable">cx</span>.<span class="cm-property">lineWidth</span> <span class="cm-operator">=</span> <span class="cm-number">3</span>;
+  <span class="cm-variable">cx</span>.<span class="cm-property">stroke</span>();
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<p><a class="p_ident" id="p_toaWujowjH" href="#p_toaWujowjH" tabindex="-1" role="presentation"></a>Escalar mudará tudo em relação à imagem, incluindo a espessura da linha, a ser esticado ou espremido como especificado. Escalar em um número negativo vai inverter a imagem. A inversão acontece em torno do ponto (0,0), o que significa que também vai inverter a direção do sistema de coordenadas. Quando uma escala horizontal de -1 é aplicada, uma forma desenhada em x na posição 100 vai acabar no que costumava ser a posição -100.</p>
+
+<p><a class="p_ident" id="p_UdwVFyEEQ8" href="#p_UdwVFyEEQ8" tabindex="-1" role="presentation"></a>Então, para inverter a figura, não podemos simplesmente usar <code>cx.scale(-1, 1)</code> antes de chamar o <code>drawImage</code>, já que poderíamos acabar tirando a figura do canvas, onde não é mais visível. Você poderia ajustar as coordenadas dadas ao <code>drawImage</code> para compensar isso desenhando a imagem em x na posição -50 ao invés disso. Outra solução, que não requer que o código que desenha precise saber sobre a mudança de escala, é ajustar o eixo no qual a escala é alterada.</p>
+
+<p><a class="p_ident" id="p_dcvvPdOc/N" href="#p_dcvvPdOc/N" tabindex="-1" role="presentation"></a>Existem várias outras formas além do <code>scale</code> que influenciam o sistema de coordenadas de um canvas. Você pode rotacionar formas desenhadas com o métodos <code>rotate</code> e movê-las com o método <code>translate</code>. O interessante – e confuso – é que essas transformações são <em>empilhadas</em>, o que significa que cada um acontece em relação às transformações anteriores.</p>
+
+<p><a class="p_ident" id="p_KKMeb9AIev" href="#p_KKMeb9AIev" tabindex="-1" role="presentation"></a>Então, se transladarmos por 10 pixels na horizontal duas vezes, todos serão desenhados 20 pixels à direita. Se movermos primeiro o centro do sistema de coordenadas para (50,50) e então rotacionarmos em 20 graus (0.1π em radianos), essa rotação vai acontecer <em>ao redor</em> do ponto (50,50).</p><figure><img src="img/transform.svg" alt="Transformações empilhadas"></figure>
+
+<p><a class="p_ident" id="p_NtWu0nOJ4Z" href="#p_NtWu0nOJ4Z" tabindex="-1" role="presentation"></a>Mas se rotacionarmos <em>primeiro</em> em 20 graus e <em>depois</em> transladarmos em (50,50), a translação acontecerá no sistema de coordenadas rotacionado, e então vai produzir uma orientação diferente. A ordem na qual as transformações são aplicadas importa.</p>
+
+<p><a class="p_ident" id="p_ZNlZidDtO4" href="#p_ZNlZidDtO4" tabindex="-1" role="presentation"></a>Para inveter uma imagem ao retor da linha vertical de uma determinada posição x, podemos fazer o seguinte:</p>
+
+<pre class="snippet cm-s-default" data-language="javascript" ><a class="c_ident" id="c_gPWtMqSBLU" href="#c_gPWtMqSBLU" tabindex="-1" role="presentation"></a><span class="cm-keyword">function</span> <span class="cm-def">flipHorizontally</span>(<span class="cm-def">context</span>, <span class="cm-def">around</span>) {
+  <span class="cm-variable-2">context</span>.<span class="cm-property">translate</span>(<span class="cm-variable-2">around</span>, <span class="cm-number">0</span>);
+  <span class="cm-variable-2">context</span>.<span class="cm-property">scale</span>(<span class="cm-operator">-</span><span class="cm-number">1</span>, <span class="cm-number">1</span>);
+  <span class="cm-variable-2">context</span>.<span class="cm-property">translate</span>(<span class="cm-operator">-</span><span class="cm-variable-2">around</span>, <span class="cm-number">0</span>);
+}</pre>
+
+<p><a class="p_ident" id="p_YsN77jjbj+" href="#p_YsN77jjbj+" tabindex="-1" role="presentation"></a>Movemos o eixo y para onde queremos que nosso espelho esteja, aplicando a espelhagem, e finalmente movemos o eixo x de volta ao lugar apropriado no universo espelhado. A figura a seguir explica por que isso funciona:</p><figure><img src="img/mirror.svg" alt="Espelhando em torno de uma linha vertical"></figure>
+
+<p><a class="p_ident" id="p_P6+IqsKECC" href="#p_P6+IqsKECC" tabindex="-1" role="presentation"></a>A imagem acima mostra o sistema de coordenadas antes e depois da espelhagem na linha central. Os triângulos são numerados para ilustrar cada etapa. Se desenhássemos um triângulo em uma posição x positiva, iria, por padrão, estar no lugar onde o triângulo 1 está. Chamar o <code>flipHorizontally</code> primeiro faz a translação para a direita, que nos leva para o triângulo 2. Ela então escala, invertendo o triângulo para a posição 3. Não era para ele estar ali, se tivéssemos espelhado em determinada linha. O segundo <code>translate</code> conserta isso – ele “cancela” a translação inicial e faz o triângulo 4 aparecer exatamente onde deveria. Agora podemos desenhar um personagem espelhado na posição (100,0) invertendo o mundo ao redor do centro vertical do personagem.</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_dmV/R5ifO7" href="#c_dmV/R5ifO7" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+  <span class="cm-keyword">let</span> <span class="cm-def">img</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">createElement</span>(<span class="cm-string">&quot;img&quot;</span>);
+  <span class="cm-variable">img</span>.<span class="cm-property">src</span> <span class="cm-operator">=</span> <span class="cm-string">&quot;img/player.png&quot;</span>;
+  <span class="cm-keyword">let</span> <span class="cm-def">spriteW</span> <span class="cm-operator">=</span> <span class="cm-number">24</span>, <span class="cm-def">spriteH</span> <span class="cm-operator">=</span> <span class="cm-number">30</span>;
+  <span class="cm-variable">img</span>.<span class="cm-property">addEventListener</span>(<span class="cm-string">&quot;load&quot;</span>, () <span class="cm-operator">=&gt;</span> {
+    <span class="cm-variable">flipHorizontally</span>(<span class="cm-variable">cx</span>, <span class="cm-number">100</span> <span class="cm-operator">+</span> <span class="cm-variable">spriteW</span> <span class="cm-operator">/</span> <span class="cm-number">2</span>);
+    <span class="cm-variable">cx</span>.<span class="cm-property">drawImage</span>(<span class="cm-variable">img</span>, <span class="cm-number">0</span>, <span class="cm-number">0</span>, <span class="cm-variable">spriteW</span>, <span class="cm-variable">spriteH</span>,
+                 <span class="cm-number">100</span>, <span class="cm-number">0</span>, <span class="cm-variable">spriteW</span>, <span class="cm-variable">spriteH</span>);
+  });
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<h2><a class="h_ident" id="h_bH0tkXVgll" href="#h_bH0tkXVgll" tabindex="-1" role="presentation"></a>Armazenando e limpando transformações</h2>
+
+<p><a class="p_ident" id="p_9pft99UgWK" href="#p_9pft99UgWK" tabindex="-1" role="presentation"></a>Transformações não vão embora. Tudo o que desenhamos após desenhar aquele personagem espelhado também pode acabar ficando espelhado. Isso pode ser inconveniente.</p>
+
+<p><a class="p_ident" id="p_q8svt7l9LA" href="#p_q8svt7l9LA" tabindex="-1" role="presentation"></a>É possível salvar a transformação atual, desenhar e transformar um pouco, e então restaurar a transformação antiga. Isso geralmente é algo apropriado de se fazer para uma função que precisa ter o sistema de coordenadas temporariamente transformados. Primeiro, salvamos o código da função de determinada transformação. Depois, a função faz o que tem que fazer (por cima da transformação existente), possivelmente adicionando mais transformações. E finalmente, revertemos para a transformação com que começamos.</p>
+
+<p><a class="p_ident" id="p_bBjKV/yeLn" href="#p_bBjKV/yeLn" tabindex="-1" role="presentation"></a>Os métodos <code>save</code> e <code>restore</code> no contexto de canvas 2D fazem esse gerenciamento da transformação. Eles conceitualmente mantêm uma pilha de estados de transformação. Quando você chama o <code>save</code>, o estado atual é colocado na pilha, e quando você chama <code>restore</code>, o estado no topo da pilha é tirado e usado como contexto da transformação atual. Você também pode usar o <code>resetTransform</code> para resetar a transformação completamente.</p>
+
+<p><a class="p_ident" id="p_jhQwJ6RMRG" href="#p_jhQwJ6RMRG" tabindex="-1" role="presentation"></a>A função <code>branch</code> no exemplo a seguir ilustra o que você pode fazer com uma função que muda a transformação e então chama outra função (nesse caso, ela mesma), que continua desenhando com essa determinada transformação.</p>
+
+<p><a class="p_ident" id="p_iSJT92oT7R" href="#p_iSJT92oT7R" tabindex="-1" role="presentation"></a>Essa função desenha uma forma semelhante a uma àrvore desenhando uma linha, movendo o centro do sistema de coordenadas para o fim da linha, e chamando a si mesma duas vezes – primeiro rotacionando para a esquerda e então rotacionando para a direita. Toda chamada reduz o comprimento do galho desenhado, e a recursão para quando o comprimento for menor que 8.</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_TvoVOvq541" href="#c_TvoVOvq541" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span> <span class="cm-attribute">width</span>=<span class="cm-string">&quot;600&quot;</span> <span class="cm-attribute">height</span>=<span class="cm-string">&quot;300&quot;</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+  <span class="cm-keyword">function</span> <span class="cm-def">branch</span>(<span class="cm-def">length</span>, <span class="cm-def">angle</span>, <span class="cm-def">scale</span>) {
+    <span class="cm-variable">cx</span>.<span class="cm-property">fillRect</span>(<span class="cm-number">0</span>, <span class="cm-number">0</span>, <span class="cm-number">1</span>, <span class="cm-variable-2">length</span>);
+    <span class="cm-keyword">if</span> (<span class="cm-variable-2">length</span> <span class="cm-operator">&lt;</span> <span class="cm-number">8</span>) <span class="cm-keyword">return</span>;
+    <span class="cm-variable">cx</span>.<span class="cm-property">save</span>();
+    <span class="cm-variable">cx</span>.<span class="cm-property">translate</span>(<span class="cm-number">0</span>, <span class="cm-variable-2">length</span>);
+    <span class="cm-variable">cx</span>.<span class="cm-property">rotate</span>(<span class="cm-operator">-</span><span class="cm-variable-2">angle</span>);
+    <span class="cm-variable">branch</span>(<span class="cm-variable-2">length</span> <span class="cm-operator">*</span> <span class="cm-variable-2">scale</span>, <span class="cm-variable-2">angle</span>, <span class="cm-variable-2">scale</span>);
+    <span class="cm-variable">cx</span>.<span class="cm-property">rotate</span>(<span class="cm-number">2</span> <span class="cm-operator">*</span> <span class="cm-variable-2">angle</span>);
+    <span class="cm-variable">branch</span>(<span class="cm-variable-2">length</span> <span class="cm-operator">*</span> <span class="cm-variable-2">scale</span>, <span class="cm-variable-2">angle</span>, <span class="cm-variable-2">scale</span>);
+    <span class="cm-variable">cx</span>.<span class="cm-property">restore</span>();
+  }
+  <span class="cm-variable">cx</span>.<span class="cm-property">translate</span>(<span class="cm-number">300</span>, <span class="cm-number">0</span>);
+  <span class="cm-variable">branch</span>(<span class="cm-number">60</span>, <span class="cm-number">0.5</span>, <span class="cm-number">0.8</span>);
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<p><a class="p_ident" id="p_jnRktII+jq" href="#p_jnRktII+jq" tabindex="-1" role="presentation"></a>Se as chamadas de <code>save</code> e <code>restore</code> não estivessem ali, a segunda chamada recursiva para <code>branch</code> acabaria com a posição e rotação criada pela primeira chamada. Ela não estaria conectada com o galho atual, mas ao galho mais interno e mais à direita desenhado pela primeira chamada. A forma resultante poderia ser interessante, mas definitivamente não seria uma árvore.</p>
+
+<h2 id="canvasdisplay"><a class="h_ident" id="h_8wuGj9UynL" href="#h_8wuGj9UynL" tabindex="-1" role="presentation"></a>De volta ao jogo</h2>
+
+<p><a class="p_ident" id="p_M75xVcn1zP" href="#p_M75xVcn1zP" tabindex="-1" role="presentation"></a>Agora sabemos o suficiente sobre desenho em canvas para começar a trabalhar em um canvas-based display system para o jogo do <a href="16_game.html">capítulo anterior</a>. O novo display mostrará apenas mais caixas coloridas. Ao invés disso, vamos usar o <code>drawImage</code> para desenhar figuras que representam os elementos dos jogos.</p>
+
+<p><a class="p_ident" id="p_UV2Gqstvhd" href="#p_UV2Gqstvhd" tabindex="-1" role="presentation"></a>Definimos outro tipo de objeto de display chamado <code>CanvasDisplay</code>, que suporta a mesma interface que o <code>DOMDisplay</code> do <a href="16_game.html#domdisplay">Capítulo 16</a>, ou seja, os métodos <code>setState</code> e <code>clear</code>.</p>
+
+<p><a class="p_ident" id="p_GCKffflqlk" href="#p_GCKffflqlk" tabindex="-1" role="presentation"></a>Esse objeto retém um pouco mais de informação que o <code>DOMDisplay</code>. Ao invés de usar a posição de rolagem de seu elemento DOM, ele rastreia sua própria viewport, o que nos diz que parte do nível estamos procurando. E finalmente, ele mantém uma propriedade <code>flipPlayer</code> para que mesmo quando o jogador estiver parado, continue olhando para a direção que se moveu por último.</p>
+
+<pre class="snippet cm-s-default" data-language="javascript"  data-sandbox="game"><a class="c_ident" id="c_0YCIeiiRNE" href="#c_0YCIeiiRNE" tabindex="-1" role="presentation"></a><span class="cm-keyword">class</span> <span class="cm-def">CanvasDisplay</span> {
+  <span class="cm-property">constructor</span>(<span class="cm-def">parent</span>, <span class="cm-def">level</span>) {
+    <span class="cm-keyword">this</span>.<span class="cm-property">canvas</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">createElement</span>(<span class="cm-string">&quot;canvas&quot;</span>);
+    <span class="cm-keyword">this</span>.<span class="cm-property">canvas</span>.<span class="cm-property">width</span> <span class="cm-operator">=</span> <span class="cm-variable">Math</span>.<span class="cm-property">min</span>(<span class="cm-number">600</span>, <span class="cm-variable-2">level</span>.<span class="cm-property">width</span> <span class="cm-operator">*</span> <span class="cm-variable">scale</span>);
+    <span class="cm-keyword">this</span>.<span class="cm-property">canvas</span>.<span class="cm-property">height</span> <span class="cm-operator">=</span> <span class="cm-variable">Math</span>.<span class="cm-property">min</span>(<span class="cm-number">450</span>, <span class="cm-variable-2">level</span>.<span class="cm-property">height</span> <span class="cm-operator">*</span> <span class="cm-variable">scale</span>);
+    <span class="cm-variable-2">parent</span>.<span class="cm-property">appendChild</span>(<span class="cm-keyword">this</span>.<span class="cm-property">canvas</span>);
+    <span class="cm-keyword">this</span>.<span class="cm-property">cx</span> <span class="cm-operator">=</span> <span class="cm-keyword">this</span>.<span class="cm-property">canvas</span>.<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+
+    <span class="cm-keyword">this</span>.<span class="cm-property">flipPlayer</span> <span class="cm-operator">=</span> <span class="cm-atom">false</span>;
+
+    <span class="cm-keyword">this</span>.<span class="cm-property">viewport</span> <span class="cm-operator">=</span> {
+      <span class="cm-property">left</span>: <span class="cm-number">0</span>,
+      <span class="cm-property">top</span>: <span class="cm-number">0</span>,
+      <span class="cm-property">width</span>: <span class="cm-keyword">this</span>.<span class="cm-property">canvas</span>.<span class="cm-property">width</span> <span class="cm-operator">/</span> <span class="cm-variable">scale</span>,
+      <span class="cm-property">height</span>: <span class="cm-keyword">this</span>.<span class="cm-property">canvas</span>.<span class="cm-property">height</span> <span class="cm-operator">/</span> <span class="cm-variable">scale</span>
+    };
+  }
+
+  <span class="cm-property">clear</span>() {
+    <span class="cm-keyword">this</span>.<span class="cm-property">canvas</span>.<span class="cm-property">remove</span>();
+  }
+}</pre>
+
+<p><a class="p_ident" id="p_L7RoY1bveF" href="#p_L7RoY1bveF" tabindex="-1" role="presentation"></a>O método <code>syncState</code> primeiro computa um novo viewport e depois desenha a cena do jogo na posição apropriada.</p>
+
+<pre class="snippet cm-s-default" data-language="javascript"  data-sandbox="game"><a class="c_ident" id="c_cERhn3J5yx" href="#c_cERhn3J5yx" tabindex="-1" role="presentation"></a><span class="cm-variable">CanvasDisplay</span>.<span class="cm-property">prototype</span>.<span class="cm-property">syncState</span> <span class="cm-operator">=</span> <span class="cm-keyword">function</span>(<span class="cm-def">state</span>) {
+  <span class="cm-keyword">this</span>.<span class="cm-property">updateViewport</span>(<span class="cm-variable-2">state</span>);
+  <span class="cm-keyword">this</span>.<span class="cm-property">clearDisplay</span>(<span class="cm-variable-2">state</span>.<span class="cm-property">status</span>);
+  <span class="cm-keyword">this</span>.<span class="cm-property">drawBackground</span>(<span class="cm-variable-2">state</span>.<span class="cm-property">level</span>);
+  <span class="cm-keyword">this</span>.<span class="cm-property">drawActors</span>(<span class="cm-variable-2">state</span>.<span class="cm-property">actors</span>);
+};</pre>
+
+<p><a class="p_ident" id="p_27dZetZe38" href="#p_27dZetZe38" tabindex="-1" role="presentation"></a>Ao contrário do <code>DOMDisplay</code>, esse estilo de display <em>precisa</em> redesenhar o plano de fundo a cada atualização. Pelas formas de um canvas serem apenas pixels, após desenhá-los, não existem boas formas de movê-las (ou removê-las). A única forma de atualizar o display do canvas é limpá-lo e redesenhar a cena. Também podemos ter rolado para baixo ou para cima, o que requer que o plano de fundo esteja em uma posição diferente.</p>
+
+<p><a class="p_ident" id="p_MR589a6OD2" href="#p_MR589a6OD2" tabindex="-1" role="presentation"></a>O método <code>updateViewport</code> é parecido com o método <code>scrollPlayerIntoView</code> do <code>DOMDisplay</code>. Ele verifica se um jogador está próximo demais da borda da tela e move o viewport quando esse for o caso.</p>
+
+<pre class="snippet cm-s-default" data-language="javascript"  data-sandbox="game"><a class="c_ident" id="c_OjMIL2K7Ii" href="#c_OjMIL2K7Ii" tabindex="-1" role="presentation"></a><span class="cm-variable">CanvasDisplay</span>.<span class="cm-property">prototype</span>.<span class="cm-property">updateViewport</span> <span class="cm-operator">=</span> <span class="cm-keyword">function</span>(<span class="cm-def">state</span>) {
+  <span class="cm-keyword">let</span> <span class="cm-def">view</span> <span class="cm-operator">=</span> <span class="cm-keyword">this</span>.<span class="cm-property">viewport</span>, <span class="cm-def">margin</span> <span class="cm-operator">=</span> <span class="cm-variable-2">view</span>.<span class="cm-property">width</span> <span class="cm-operator">/</span> <span class="cm-number">3</span>;
+  <span class="cm-keyword">let</span> <span class="cm-def">player</span> <span class="cm-operator">=</span> <span class="cm-variable-2">state</span>.<span class="cm-property">player</span>;
+  <span class="cm-keyword">let</span> <span class="cm-def">center</span> <span class="cm-operator">=</span> <span class="cm-variable-2">player</span>.<span class="cm-property">pos</span>.<span class="cm-property">plus</span>(<span class="cm-variable-2">player</span>.<span class="cm-property">size</span>.<span class="cm-property">times</span>(<span class="cm-number">0.5</span>));
+
+  <span class="cm-keyword">if</span> (<span class="cm-variable-2">center</span>.<span class="cm-property">x</span> <span class="cm-operator">&lt;</span> <span class="cm-variable-2">view</span>.<span class="cm-property">left</span> <span class="cm-operator">+</span> <span class="cm-variable-2">margin</span>) {
+    <span class="cm-variable-2">view</span>.<span class="cm-property">left</span> <span class="cm-operator">=</span> <span class="cm-variable">Math</span>.<span class="cm-property">max</span>(<span class="cm-variable-2">center</span>.<span class="cm-property">x</span> <span class="cm-operator">-</span> <span class="cm-variable-2">margin</span>, <span class="cm-number">0</span>);
+  } <span class="cm-keyword">else</span> <span class="cm-keyword">if</span> (<span class="cm-variable-2">center</span>.<span class="cm-property">x</span> <span class="cm-operator">&gt;</span> <span class="cm-variable-2">view</span>.<span class="cm-property">left</span> <span class="cm-operator">+</span> <span class="cm-variable-2">view</span>.<span class="cm-property">width</span> <span class="cm-operator">-</span> <span class="cm-variable-2">margin</span>) {
+    <span class="cm-variable-2">view</span>.<span class="cm-property">left</span> <span class="cm-operator">=</span> <span class="cm-variable">Math</span>.<span class="cm-property">min</span>(<span class="cm-variable-2">center</span>.<span class="cm-property">x</span> <span class="cm-operator">+</span> <span class="cm-variable-2">margin</span> <span class="cm-operator">-</span> <span class="cm-variable-2">view</span>.<span class="cm-property">width</span>,
+                         <span class="cm-variable-2">state</span>.<span class="cm-property">level</span>.<span class="cm-property">width</span> <span class="cm-operator">-</span> <span class="cm-variable-2">view</span>.<span class="cm-property">width</span>);
+  }
+  <span class="cm-keyword">if</span> (<span class="cm-variable-2">center</span>.<span class="cm-property">y</span> <span class="cm-operator">&lt;</span> <span class="cm-variable-2">view</span>.<span class="cm-property">top</span> <span class="cm-operator">+</span> <span class="cm-variable-2">margin</span>) {
+    <span class="cm-variable-2">view</span>.<span class="cm-property">top</span> <span class="cm-operator">=</span> <span class="cm-variable">Math</span>.<span class="cm-property">max</span>(<span class="cm-variable-2">center</span>.<span class="cm-property">y</span> <span class="cm-operator">-</span> <span class="cm-variable-2">margin</span>, <span class="cm-number">0</span>);
+  } <span class="cm-keyword">else</span> <span class="cm-keyword">if</span> (<span class="cm-variable-2">center</span>.<span class="cm-property">y</span> <span class="cm-operator">&gt;</span> <span class="cm-variable-2">view</span>.<span class="cm-property">top</span> <span class="cm-operator">+</span> <span class="cm-variable-2">view</span>.<span class="cm-property">height</span> <span class="cm-operator">-</span> <span class="cm-variable-2">margin</span>) {
+    <span class="cm-variable-2">view</span>.<span class="cm-property">top</span> <span class="cm-operator">=</span> <span class="cm-variable">Math</span>.<span class="cm-property">min</span>(<span class="cm-variable-2">center</span>.<span class="cm-property">y</span> <span class="cm-operator">+</span> <span class="cm-variable-2">margin</span> <span class="cm-operator">-</span> <span class="cm-variable-2">view</span>.<span class="cm-property">height</span>,
+                        <span class="cm-variable-2">state</span>.<span class="cm-property">level</span>.<span class="cm-property">height</span> <span class="cm-operator">-</span> <span class="cm-variable-2">view</span>.<span class="cm-property">height</span>);
+  }
+};</pre>
+
+<p><a class="p_ident" id="p_Kh0QWRdb3f" href="#p_Kh0QWRdb3f" tabindex="-1" role="presentation"></a>As chamadas para <code>Math.max</code> e <code>Math.min</code> certificam que o viewport não acabe mostrando espaço de fora do nível. O <code>Math.max(x, 0)</code> certifica de que o número resultante não seja menor que zero. <code>Math.min</code>, de forma semelhante, garante que o valor fique abaixo de determinado limite.</p>
+
+<p><a class="p_ident" id="p_T8Am/tAw4A" href="#p_T8Am/tAw4A" tabindex="-1" role="presentation"></a>Quando limpamos o display, vamos usar uma cor levemente diferente dependendo se o jogo tiver sido vencido (mais claro) ou perdido (mais escuro).</p>
+
+<pre class="snippet cm-s-default" data-language="javascript"  data-sandbox="game"><a class="c_ident" id="c_P43rIXnt0B" href="#c_P43rIXnt0B" tabindex="-1" role="presentation"></a><span class="cm-variable">CanvasDisplay</span>.<span class="cm-property">prototype</span>.<span class="cm-property">clearDisplay</span> <span class="cm-operator">=</span> <span class="cm-keyword">function</span>(<span class="cm-def">status</span>) {
+  <span class="cm-keyword">if</span> (<span class="cm-variable-2">status</span> <span class="cm-operator">==</span> <span class="cm-string">&quot;won&quot;</span>) {
+    <span class="cm-keyword">this</span>.<span class="cm-property">cx</span>.<span class="cm-property">fillStyle</span> <span class="cm-operator">=</span> <span class="cm-string">&quot;rgb(68, 191, 255)&quot;</span>;
+  } <span class="cm-keyword">else</span> <span class="cm-keyword">if</span> (<span class="cm-variable-2">status</span> <span class="cm-operator">==</span> <span class="cm-string">&quot;lost&quot;</span>) {
+    <span class="cm-keyword">this</span>.<span class="cm-property">cx</span>.<span class="cm-property">fillStyle</span> <span class="cm-operator">=</span> <span class="cm-string">&quot;rgb(44, 136, 214)&quot;</span>;
+  } <span class="cm-keyword">else</span> {
+    <span class="cm-keyword">this</span>.<span class="cm-property">cx</span>.<span class="cm-property">fillStyle</span> <span class="cm-operator">=</span> <span class="cm-string">&quot;rgb(52, 166, 251)&quot;</span>;
+  }
+  <span class="cm-keyword">this</span>.<span class="cm-property">cx</span>.<span class="cm-property">fillRect</span>(<span class="cm-number">0</span>, <span class="cm-number">0</span>,
+                   <span class="cm-keyword">this</span>.<span class="cm-property">canvas</span>.<span class="cm-property">width</span>, <span class="cm-keyword">this</span>.<span class="cm-property">canvas</span>.<span class="cm-property">height</span>);
+};</pre>
+
+<p><a class="p_ident" id="p_L39xmA4Otm" href="#p_L39xmA4Otm" tabindex="-1" role="presentation"></a>Para desenharmos o plano de fundo, percorremos os <em>tiles</em> (ladrilhos) que são visíveis no viewport atual, usando o mesmo truque usado no método <code>touches</code> do <a href="16_game.html#touches">capítulo anterior</a>.</p>
+
+<pre class="snippet cm-s-default" data-language="javascript"  data-sandbox="game"><a class="c_ident" id="c_UYqDAMiEp6" href="#c_UYqDAMiEp6" tabindex="-1" role="presentation"></a><span class="cm-keyword">let</span> <span class="cm-def">otherSprites</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">createElement</span>(<span class="cm-string">&quot;img&quot;</span>);
+<span class="cm-variable">otherSprites</span>.<span class="cm-property">src</span> <span class="cm-operator">=</span> <span class="cm-string">&quot;img/sprites.png&quot;</span>;
+
+<span class="cm-variable">CanvasDisplay</span>.<span class="cm-property">prototype</span>.<span class="cm-property">drawBackground</span> <span class="cm-operator">=</span> <span class="cm-keyword">function</span>(<span class="cm-def">level</span>) {
+  <span class="cm-keyword">let</span> {<span class="cm-def">left</span>, <span class="cm-def">top</span>, <span class="cm-def">width</span>, <span class="cm-def">height</span>} <span class="cm-operator">=</span> <span class="cm-keyword">this</span>.<span class="cm-property">viewport</span>;
+  <span class="cm-keyword">let</span> <span class="cm-def">xStart</span> <span class="cm-operator">=</span> <span class="cm-variable">Math</span>.<span class="cm-property">floor</span>(<span class="cm-variable-2">left</span>);
+  <span class="cm-keyword">let</span> <span class="cm-def">xEnd</span> <span class="cm-operator">=</span> <span class="cm-variable">Math</span>.<span class="cm-property">ceil</span>(<span class="cm-variable-2">left</span> <span class="cm-operator">+</span> <span class="cm-variable-2">width</span>);
+  <span class="cm-keyword">let</span> <span class="cm-def">yStart</span> <span class="cm-operator">=</span> <span class="cm-variable">Math</span>.<span class="cm-property">floor</span>(<span class="cm-variable-2">top</span>);
+  <span class="cm-keyword">let</span> <span class="cm-def">yEnd</span> <span class="cm-operator">=</span> <span class="cm-variable">Math</span>.<span class="cm-property">ceil</span>(<span class="cm-variable-2">top</span> <span class="cm-operator">+</span> <span class="cm-variable-2">height</span>);
+
+  <span class="cm-keyword">for</span> (<span class="cm-keyword">let</span> <span class="cm-def">y</span> <span class="cm-operator">=</span> <span class="cm-variable-2">yStart</span>; <span class="cm-variable-2">y</span> <span class="cm-operator">&lt;</span> <span class="cm-variable-2">yEnd</span>; <span class="cm-variable-2">y</span><span class="cm-operator">++</span>) {
+    <span class="cm-keyword">for</span> (<span class="cm-keyword">let</span> <span class="cm-def">x</span> <span class="cm-operator">=</span> <span class="cm-variable-2">xStart</span>; <span class="cm-variable-2">x</span> <span class="cm-operator">&lt;</span> <span class="cm-variable-2">xEnd</span>; <span class="cm-variable-2">x</span><span class="cm-operator">++</span>) {
+      <span class="cm-keyword">let</span> <span class="cm-def">tile</span> <span class="cm-operator">=</span> <span class="cm-variable-2">level</span>.<span class="cm-property">rows</span>[<span class="cm-variable-2">y</span>][<span class="cm-variable-2">x</span>];
+      <span class="cm-keyword">if</span> (<span class="cm-variable-2">tile</span> <span class="cm-operator">==</span> <span class="cm-string">&quot;empty&quot;</span>) <span class="cm-keyword">continue</span>;
+      <span class="cm-keyword">let</span> <span class="cm-def">screenX</span> <span class="cm-operator">=</span> (<span class="cm-variable-2">x</span> <span class="cm-operator">-</span> <span class="cm-variable-2">left</span>) <span class="cm-operator">*</span> <span class="cm-variable">scale</span>;
+      <span class="cm-keyword">let</span> <span class="cm-def">screenY</span> <span class="cm-operator">=</span> (<span class="cm-variable-2">y</span> <span class="cm-operator">-</span> <span class="cm-variable-2">top</span>) <span class="cm-operator">*</span> <span class="cm-variable">scale</span>;
+      <span class="cm-keyword">let</span> <span class="cm-def">tileX</span> <span class="cm-operator">=</span> <span class="cm-variable-2">tile</span> <span class="cm-operator">==</span> <span class="cm-string">&quot;lava&quot;</span> <span class="cm-operator">?</span> <span class="cm-variable">scale</span> : <span class="cm-number">0</span>;
+      <span class="cm-keyword">this</span>.<span class="cm-property">cx</span>.<span class="cm-property">drawImage</span>(<span class="cm-variable">otherSprites</span>,
+                        <span class="cm-variable-2">tileX</span>,         <span class="cm-number">0</span>, <span class="cm-variable">scale</span>, <span class="cm-variable">scale</span>,
+                        <span class="cm-variable-2">screenX</span>, <span class="cm-variable-2">screenY</span>, <span class="cm-variable">scale</span>, <span class="cm-variable">scale</span>);
+    }
+  }
+};</pre>
+
+<p><a class="p_ident" id="p_KzKJ7WUXtb" href="#p_KzKJ7WUXtb" tabindex="-1" role="presentation"></a><em>Tiles</em> que não estão vazios são desenhados com o <code>drawImage</code>. A imagem <code>otherSprites</code> contém as figuras usadas para elementos que não sejam o jogador. Ela contém, da esquerda para a direita, a tile da parede, da lava, e o sprite para uma moeda.</p><figure><img src="img/sprites_big.png" alt="Sprites for our game"></figure>
+
+<p><a class="p_ident" id="p_ygmkQROEMk" href="#p_ygmkQROEMk" tabindex="-1" role="presentation"></a>Os <em>tiles</em> do plano de fundo são 20 pixels por 20 pixels, já que vamos usar a mesma escala que usamos no <code>DOMDisplay</code>. Além disso, o deslocamento para os tiles da lava é 20 (o valor do <code>scale</code>), e o deslocamento para as paredes é 0.</p>
+
+<p><a class="p_ident" id="p_gHp1j7byyb" href="#p_gHp1j7byyb" tabindex="-1" role="presentation"></a>Não nos importamos em esperar a imagem da sprite carregar. Chamar o <code>drawImage</code> com uma imagem que não foi carregada ainda simplesmente não fará nada. Além disso, podemos acabar falhando em desenhar o jogo apropriadamente nos primeiros quadros, enquanto a imagem ainda estiver carregando, mas esse não é um problema sério. Já que continuamos atualizando a tela, a cena correta aparecerá assim que o carregamento terminar.</p>
+
+<p><a class="p_ident" id="p_ThvFATbJVK" href="#p_ThvFATbJVK" tabindex="-1" role="presentation"></a>O personagem caminhando mostrado mais cedo será usado para representar o jogador. O código que o desenha precisa escolher a sprite correta e direcioná-la baseando-se no movimento atual do jogador. As primeiras oito sprites contêm uma animação caminhando. Quando o jogador estiver se movendo junto ao chão, vamos passar por elas baseando-se no tempo atual. Queremos trocar os quadros a cada 60 milissegundos, então o tempo precisa ser dividido por 60 primeiro. Quando o jogador estiver parado, desenhamos o novo sprite. Durante os pulos, que são reconhecidos pelo fato de que a velocidade vertical não é zero, usamos o décimo, que é a sprite mais à direita.</p>
+
+<p><a class="p_ident" id="p_nnKFr0Fr2i" href="#p_nnKFr0Fr2i" tabindex="-1" role="presentation"></a>Pelas sprites serem levemente maiores que o objeto do jogador – 24 ao invés de 16 pixels, para permitir espaço para os pés e braços – o método tem que ajustar a coordenada em x e largura em uma certa quantidade (<code>playerXOverlap</code>).</p>
+
+<pre class="snippet cm-s-default" data-language="javascript"  data-sandbox="game"><a class="c_ident" id="c_T61uCWX04T" href="#c_T61uCWX04T" tabindex="-1" role="presentation"></a><span class="cm-keyword">let</span> <span class="cm-def">playerSprites</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">createElement</span>(<span class="cm-string">&quot;img&quot;</span>);
+<span class="cm-variable">playerSprites</span>.<span class="cm-property">src</span> <span class="cm-operator">=</span> <span class="cm-string">&quot;img/player.png&quot;</span>;
+<span class="cm-keyword">const</span> <span class="cm-def">playerXOverlap</span> <span class="cm-operator">=</span> <span class="cm-number">4</span>;
+
+<span class="cm-variable">CanvasDisplay</span>.<span class="cm-property">prototype</span>.<span class="cm-property">drawPlayer</span> <span class="cm-operator">=</span> <span class="cm-keyword">function</span>(<span class="cm-def">player</span>, <span class="cm-def">x</span>, <span class="cm-def">y</span>,
+                                              <span class="cm-def">width</span>, <span class="cm-def">height</span>){
+  <span class="cm-variable-2">width</span> <span class="cm-operator">+=</span> <span class="cm-variable">playerXOverlap</span> <span class="cm-operator">*</span> <span class="cm-number">2</span>;
+  <span class="cm-variable-2">x</span> <span class="cm-operator">-=</span> <span class="cm-variable">playerXOverlap</span>;
+  <span class="cm-keyword">if</span> (<span class="cm-variable-2">player</span>.<span class="cm-property">speed</span>.<span class="cm-property">x</span> <span class="cm-operator">!=</span> <span class="cm-number">0</span>) {
+    <span class="cm-keyword">this</span>.<span class="cm-property">flipPlayer</span> <span class="cm-operator">=</span> <span class="cm-variable-2">player</span>.<span class="cm-property">speed</span>.<span class="cm-property">x</span> <span class="cm-operator">&lt;</span> <span class="cm-number">0</span>;
+  }
+
+  <span class="cm-keyword">let</span> <span class="cm-def">tile</span> <span class="cm-operator">=</span> <span class="cm-number">8</span>;
+  <span class="cm-keyword">if</span> (<span class="cm-variable-2">player</span>.<span class="cm-property">speed</span>.<span class="cm-property">y</span> <span class="cm-operator">!=</span> <span class="cm-number">0</span>) {
+    <span class="cm-variable-2">tile</span> <span class="cm-operator">=</span> <span class="cm-number">9</span>;
+  } <span class="cm-keyword">else</span> <span class="cm-keyword">if</span> (<span class="cm-variable-2">player</span>.<span class="cm-property">speed</span>.<span class="cm-property">x</span> <span class="cm-operator">!=</span> <span class="cm-number">0</span>) {
+    <span class="cm-variable-2">tile</span> <span class="cm-operator">=</span> <span class="cm-variable">Math</span>.<span class="cm-property">floor</span>(<span class="cm-variable">Date</span>.<span class="cm-property">now</span>() <span class="cm-operator">/</span> <span class="cm-number">60</span>) <span class="cm-operator">%</span> <span class="cm-number">8</span>;
+  }
+
+  <span class="cm-keyword">this</span>.<span class="cm-property">cx</span>.<span class="cm-property">save</span>();
+  <span class="cm-keyword">if</span> (<span class="cm-keyword">this</span>.<span class="cm-property">flipPlayer</span>) {
+    <span class="cm-variable">flipHorizontally</span>(<span class="cm-keyword">this</span>.<span class="cm-property">cx</span>, <span class="cm-variable-2">x</span> <span class="cm-operator">+</span> <span class="cm-variable-2">width</span> <span class="cm-operator">/</span> <span class="cm-number">2</span>);
+  }
+  <span class="cm-keyword">let</span> <span class="cm-def">tileX</span> <span class="cm-operator">=</span> <span class="cm-variable-2">tile</span> <span class="cm-operator">*</span> <span class="cm-variable-2">width</span>;
+  <span class="cm-keyword">this</span>.<span class="cm-property">cx</span>.<span class="cm-property">drawImage</span>(<span class="cm-variable">playerSprites</span>, <span class="cm-variable-2">tileX</span>, <span class="cm-number">0</span>, <span class="cm-variable-2">width</span>, <span class="cm-variable-2">height</span>,
+                                   <span class="cm-variable-2">x</span>,     <span class="cm-variable-2">y</span>, <span class="cm-variable-2">width</span>, <span class="cm-variable-2">height</span>);
+  <span class="cm-keyword">this</span>.<span class="cm-property">cx</span>.<span class="cm-property">restore</span>();
+};</pre>
+
+<p><a class="p_ident" id="p_ab7NQm774k" href="#p_ab7NQm774k" tabindex="-1" role="presentation"></a>O método <code>drawPlayer</code> é chamado pelo <code>drawActors</code>, que é responsável por desenhar todos os atores no jogo.</p>
+
+<pre class="snippet cm-s-default" data-language="javascript"  data-sandbox="game"><a class="c_ident" id="c_XwZEfLqKhO" href="#c_XwZEfLqKhO" tabindex="-1" role="presentation"></a><span class="cm-variable">CanvasDisplay</span>.<span class="cm-property">prototype</span>.<span class="cm-property">drawActors</span> <span class="cm-operator">=</span> <span class="cm-keyword">function</span>(<span class="cm-def">actors</span>) {
+  <span class="cm-keyword">for</span> (<span class="cm-keyword">let</span> <span class="cm-def">actor</span> <span class="cm-keyword">of</span> <span class="cm-variable-2">actors</span>) {
+    <span class="cm-keyword">let</span> <span class="cm-def">width</span> <span class="cm-operator">=</span> <span class="cm-variable-2">actor</span>.<span class="cm-property">size</span>.<span class="cm-property">x</span> <span class="cm-operator">*</span> <span class="cm-variable">scale</span>;
+    <span class="cm-keyword">let</span> <span class="cm-def">height</span> <span class="cm-operator">=</span> <span class="cm-variable-2">actor</span>.<span class="cm-property">size</span>.<span class="cm-property">y</span> <span class="cm-operator">*</span> <span class="cm-variable">scale</span>;
+    <span class="cm-keyword">let</span> <span class="cm-def">x</span> <span class="cm-operator">=</span> (<span class="cm-variable-2">actor</span>.<span class="cm-property">pos</span>.<span class="cm-property">x</span> <span class="cm-operator">-</span> <span class="cm-keyword">this</span>.<span class="cm-property">viewport</span>.<span class="cm-property">left</span>) <span class="cm-operator">*</span> <span class="cm-variable">scale</span>;
+    <span class="cm-keyword">let</span> <span class="cm-def">y</span> <span class="cm-operator">=</span> (<span class="cm-variable-2">actor</span>.<span class="cm-property">pos</span>.<span class="cm-property">y</span> <span class="cm-operator">-</span> <span class="cm-keyword">this</span>.<span class="cm-property">viewport</span>.<span class="cm-property">top</span>) <span class="cm-operator">*</span> <span class="cm-variable">scale</span>;
+    <span class="cm-keyword">if</span> (<span class="cm-variable-2">actor</span>.<span class="cm-property">type</span> <span class="cm-operator">==</span> <span class="cm-string">&quot;player&quot;</span>) {
+      <span class="cm-keyword">this</span>.<span class="cm-property">drawPlayer</span>(<span class="cm-variable-2">actor</span>, <span class="cm-variable-2">x</span>, <span class="cm-variable-2">y</span>, <span class="cm-variable-2">width</span>, <span class="cm-variable-2">height</span>);
+    } <span class="cm-keyword">else</span> {
+      <span class="cm-keyword">let</span> <span class="cm-def">tileX</span> <span class="cm-operator">=</span> (<span class="cm-variable-2">actor</span>.<span class="cm-property">type</span> <span class="cm-operator">==</span> <span class="cm-string">&quot;coin&quot;</span> <span class="cm-operator">?</span> <span class="cm-number">2</span> : <span class="cm-number">1</span>) <span class="cm-operator">*</span> <span class="cm-variable">scale</span>;
+      <span class="cm-keyword">this</span>.<span class="cm-property">cx</span>.<span class="cm-property">drawImage</span>(<span class="cm-variable">otherSprites</span>,
+                        <span class="cm-variable-2">tileX</span>, <span class="cm-number">0</span>, <span class="cm-variable-2">width</span>, <span class="cm-variable-2">height</span>,
+                        <span class="cm-variable-2">x</span>,     <span class="cm-variable-2">y</span>, <span class="cm-variable-2">width</span>, <span class="cm-variable-2">height</span>);
+    }
+  }
+};</pre>
+
+<p><a class="p_ident" id="p_z9HYtY/cVY" href="#p_z9HYtY/cVY" tabindex="-1" role="presentation"></a>Quando desenhamos algo que não seja o jogador, verificamos seu tipo para encontrar o deslocamento da sprite correta. O <em>tile</em> de lava tem o deslocamento de 20, o sprite da moeda tem deslocamento de 40 (duas vezes a <code>scale</code>).</p>
+
+<p><a class="p_ident" id="p_BAWhAlvImh" href="#p_BAWhAlvImh" tabindex="-1" role="presentation"></a>Temos que subtrair a posição do viewport quando computamos a posição do ator desde (0,0) no nosso canvas correspondente do canto superior esquerdo do viewport, não do canto superior esquerdo do nível. Poderíamos também ter usado <code>translate</code> para isso. Ambas as formas funcionam.</p>
+
+<p><a class="p_ident" id="p_YcNZVDS92m" href="#p_YcNZVDS92m" tabindex="-1" role="presentation"></a>Esse documento conecta o novo display em <code>runGame</code>:</p>
+
+<pre class="snippet cm-s-default" data-language="text/html"  data-focus="true" data-sandbox="game"><a class="c_ident" id="c_TSR2vcnWZv" href="#c_TSR2vcnWZv" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">body</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+    <span class="cm-variable">runGame</span>(<span class="cm-variable">GAME_LEVELS</span>, <span class="cm-variable">CanvasDisplay</span>);
+  <span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">body</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<h2 id="graphics_tradeoffs"><a class="h_ident" id="h_ItrwZLSjN/" href="#h_ItrwZLSjN/" tabindex="-1" role="presentation"></a>Escolhendo uma interface gráfica</h2>
+
+<p><a class="p_ident" id="p_OGOTwMdrNX" href="#p_OGOTwMdrNX" tabindex="-1" role="presentation"></a>Então, quando precisar gerar gráficos no navegador, você pode escolher entre HTML, SVG e canvas. Não há uma <em>melhor</em> abordagem que funciona em todas as situações. Cada opção tem seus pontos fortes e fracos.</p>
+
+<p><a class="p_ident" id="p_BTmCXfZSHB" href="#p_BTmCXfZSHB" tabindex="-1" role="presentation"></a>HTML tem a vantagem de ser simples. Ele também integra bem com texto. Tanto o SVG quanto o canvas permite que você desenhe texto, mas não vão te ajudar a posicionar esse texto ou agrupá-lo quando ele tiver mais de uma linha. Em uma figura baseada em HTML, é muito mais fácil incluir blocos de texto.</p>
+
+<p><a class="p_ident" id="p_77+/v+KFxo" href="#p_77+/v+KFxo" tabindex="-1" role="presentation"></a>O SVG pode ser usado para produzir gráficos nítidos que ficam bons em qualquer nível de zoom. Ao contrário do HTML, ele é feito para desenho e, portanto, é mais adequado para esse propósito.</p>
+
+<p><a class="p_ident" id="p_ISg/EgLA1a" href="#p_ISg/EgLA1a" tabindex="-1" role="presentation"></a>Tanto o SVG quanto o HTML criam uma estrutura de dados (o DOM) que representa sua figura. Isso faz com que seja possível modificar os elementos após serem desenhados. Se precisar mudar uma forma pequena de uma figura grande várias vezes em resposta ao que o usário estiver fazendo ou como parte de uma animação, fazer isso em um canvas pode ser desnecessariamente pesado. O DOM também nos permite registrar <em>event handlers</em> do mouse em todo elemento da figura (mesmo em formas desenhadas com o SVG). Você não pode fazer isso com o canvas.</p>
+
+<p><a class="p_ident" id="p_sY3RHmzvnf" href="#p_sY3RHmzvnf" tabindex="-1" role="presentation"></a>Mas a abordagem orientada a pixel do canvas pode ser uma vantagem quando desenhamos uma quantidade enorme de elementos pequenos. O fato de que uma estrutura de dados não é criada, mas é apenas desenhada repetidamente na mesma superfície de pixel, dá ao canvas um custo baixo por forma.</p>
+
+<p><a class="p_ident" id="p_Xplz+6e8cR" href="#p_Xplz+6e8cR" tabindex="-1" role="presentation"></a>Também existem eventos, como renderizar uma cena um pixel por vez (usando um <em>ray tracer</em>, que é um algoritmo de computação gráfica usado para renderização de imagens tridimencionais, por exemplo) ou pós-processar uma imagem com JavaScript (desfocando ou distorcendo a imagem), que só podem ser lidadas realisticamente por uma abordagem baseada em pixels.</p>
+
+<p><a class="p_ident" id="p_HyP2nD7dRX" href="#p_HyP2nD7dRX" tabindex="-1" role="presentation"></a>Em alguns casos, você pode querer combinar várias dessas técnicas. Por exemplo, você pode querer desenhar um grafo com SVG ou canvas, mas mostrar informações em texto posicionando um elemento HTML em cima da figura.</p>
+
+<p><a class="p_ident" id="p_lPVB31ywAU" href="#p_lPVB31ywAU" tabindex="-1" role="presentation"></a>Para aplicações que não exijam tanto, não importa qual interface você escolhe. O display que criamos para nosso jogo nesse capítulo poderia ter sido implementado usando qualquer uma dessas três tecnologias gráficas, já que não precisamos desenhar texto, lidar com interação do mouse ou trabalhar com uma quantidade extraordinariamente grande de elementos.</p>
+
+<h2><a class="h_ident" id="h_b46vyAnXhO" href="#h_b46vyAnXhO" tabindex="-1" role="presentation"></a>Sumário</h2>
+
+<p><a class="p_ident" id="p_JnCxPzFcXb" href="#p_JnCxPzFcXb" tabindex="-1" role="presentation"></a>Nesse capítulo discutimos técnicas para desenhar gráficos no navegador, focando no elemento <code>&lt;canvas&gt;</code>.</p>
+
+<p><a class="p_ident" id="p_BkdPlDgafC" href="#p_BkdPlDgafC" tabindex="-1" role="presentation"></a>Um nó do canvas representa uma área em um documento que nosso programa possa desenhar. Esse desenho é feito através de um objeto de contexto de desenho, criado com um método <code>getContext</code>.</p>
+
+<p><a class="p_ident" id="p_FaXGZzqRf5" href="#p_FaXGZzqRf5" tabindex="-1" role="presentation"></a>A interface de desenho 2D nos permite preencher e delinear várias formas. A propriedade <code>fillStyle</code> do contexto determina como as formas são preenchidas. As propriedades <code>strokeStyle</code> e <code>lineWidth</code> controlam as formas que as linhas são desenhadas.</p>
+
+<p><a class="p_ident" id="p_q7eQy0vlcF" href="#p_q7eQy0vlcF" tabindex="-1" role="presentation"></a>Retângulos e pedaços de texto podem ser desenhados com apenas uma chamada de método. Os métodos <code>fillRect</code> e <code>strokeRect</code> desenham retângulos, e os métodos <code>fillText</code> e <code>strokeText</code> desenham texto. Para criar formas customizadas, precisamos desenhar um caminho primeiro.</p>
+
+<p><a class="p_ident" id="p_BLfRBmZ1yY" href="#p_BLfRBmZ1yY" tabindex="-1" role="presentation"></a>Chamar o <code>beginPath</code> inicia um novo caminho. Vários outros métodos adicionam linhas e curvas ao caminho atual. Por exemplo, <code>lineTo</code> pode adicionar uma linha reta. Quando um caminho é finalizado, ele pode ser preenchido com o método <code>fill</code> ou delineado com o método <code>stroke</code>.</p>
+
+<p><a class="p_ident" id="p_2qfntMuBiS" href="#p_2qfntMuBiS" tabindex="-1" role="presentation"></a>Mover pixels de uma imagem, ou de um canvas para outro, pode ser feito com o método <code>drawImage</code>. Por padrão, esse método desenha uma imagem fonte por completo, mas dar mais parâmetros ao método te permite copiar uma área específica da imagem. Usamos isso para nosso jogo copiando poses individuais de um personagem de jogo de uma imagem que continha tais poses.</p>
+
+<p><a class="p_ident" id="p_iS6rvrAhPD" href="#p_iS6rvrAhPD" tabindex="-1" role="presentation"></a>Transformações permitem desenhar uma forma em várias orientações. Um desenho de contexto 2D tem uma transformação atual que pode ser mudada com os métodos <code>translate</code>, <code>scale</code> e <code>rotate</code>. Eles vão afetar todas as operações de desenho subsequentes. Um estado de transformação pode ser salvo com o método <code>save</code> e restaurado com o método <code>restore</code>.</p>
+
+<p><a class="p_ident" id="p_5SwGGTl4c9" href="#p_5SwGGTl4c9" tabindex="-1" role="presentation"></a>Quando mostrar uma animação em um canvas, o método <code>clearRect</code> pode ser usado para limpar o canvas antes de redesenhá-lo.</p>
+
+<h2><a class="h_ident" id="h_0CpJUZuhQJ" href="#h_0CpJUZuhQJ" tabindex="-1" role="presentation"></a>Exercícios</h2>
+
+<h3><a class="i_ident" id="i_6W3KpJZhnW" href="#i_6W3KpJZhnW" tabindex="-1" role="presentation"></a>Formas</h3>
+
+<p><a class="p_ident" id="p_lHoPuy7gGb" href="#p_lHoPuy7gGb" tabindex="-1" role="presentation"></a>Escreva um programa que desenhe as formas a seguir em um canvas:</p>
+
+<ol>
+
+<li>
+
+<p><a class="p_ident" id="p_VvQV1H3N3M" href="#p_VvQV1H3N3M" tabindex="-1" role="presentation"></a>Um trapézio (um retângulo que é maior de um lado)</p></li>
+
+<li>
+
+<p><a class="p_ident" id="p_mpe8lphw3u" href="#p_mpe8lphw3u" tabindex="-1" role="presentation"></a>Um diamante vermelho (um retângulo rotacionado em 45 graus ou ¼π radianos)</p></li>
+
+<li>
+
+<p><a class="p_ident" id="p_jICUvOGpf1" href="#p_jICUvOGpf1" tabindex="-1" role="presentation"></a>Uma linha em zigue-zague</p></li>
+
+<li>
+
+<p><a class="p_ident" id="p_Ko4ZPw8a6w" href="#p_Ko4ZPw8a6w" tabindex="-1" role="presentation"></a>Uma espiral feita de 100 segmentos de linha retos</p></li>
+
+<li>
+
+<p><a class="p_ident" id="p_mJD5ixSuSI" href="#p_mJD5ixSuSI" tabindex="-1" role="presentation"></a>Uma estrela amarela</p></li>
+
+</ol><figure><img src="img/exercise_shapes.png" alt="Formas a serem desenhadas"></figure>
+
+<p><a class="p_ident" id="p_k8g4Y/TH0z" href="#p_k8g4Y/TH0z" tabindex="-1" role="presentation"></a>Quando desenhar os dois últimos, você pode querer dar uma olhada na explicação de <code>Math.cos</code> e <code>Math.sin</code> no <a href="14_dom.html#sin_cos">Capítulo 14</a>, que descreve como obter coordenadas de um círculo usando essas funções.</p>
+
+<p><a class="p_ident" id="p_LCcOTQLIm6" href="#p_LCcOTQLIm6" tabindex="-1" role="presentation"></a>Recomendo criar uma função para cada forma. Passe a posição, e de forma opcional outras propriedades como o tamanho ou número de pontos, como parâmetros. A alternativa, que é apenas definir os números por todo o seu código, tende a torná-lo difícil de ler e modificar sem necessidade.</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_DGffS1YwIm" href="#c_DGffS1YwIm" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span> <span class="cm-attribute">width</span>=<span class="cm-string">&quot;600&quot;</span> <span class="cm-attribute">height</span>=<span class="cm-string">&quot;200&quot;</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+
+  <span class="cm-comment">// Seu código aqui.</span>
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<div class="solution"><div class="solution-text">
+
+<p><a class="p_ident" id="p_8+nagmrzUt" href="#p_8+nagmrzUt" tabindex="-1" role="presentation"></a>O trapézio (1) é o mais fácil de desenhar usando um caminho. Escolha coordenadas de centro adequadas e adicione cada um dos quatro cantos ao redor do centro.</p>
+
+<p><a class="p_ident" id="p_Q+/37BF41F" href="#p_Q+/37BF41F" tabindex="-1" role="presentation"></a>O diamante (2) pode ser desenhado de forma bem direta, com um caminho, ou de forma interessante, com uma transformação <code>rotate</code>. Para usar a rotação, você terá que aplicar um truque parecido com o que fizemos na função <code>flipHorizontally</code>. Porque, se quiser rotacionar ao redor do centro do seu retângulo, e não ao redor do ponto (0,0), você deve primeiro <code>translate</code> para lá, e então rotacionar, e depois transladar de volta.</p>
+
+<p><a class="p_ident" id="p_BMA7+fARVK" href="#p_BMA7+fARVK" tabindex="-1" role="presentation"></a>Lembre-se de resetar a transformação após desenhar qualquer forma que cria uma.</p>
+
+<p><a class="p_ident" id="p_QPa4xMG/lB" href="#p_QPa4xMG/lB" tabindex="-1" role="presentation"></a>Para o zigue-zague (3) não é prático chamar a função <code>lineTo</code> para cada segmento de linha. Ao invés disso, você deve usar um loop. Você pode ter cada iteração desenhada a cada dois segmentos de linha (da direita e depois da esquerda) ou uma, e nesse caso precisa usar a uniformidade (<code>% 2</code>) do índice do loop para determinar se é necessário ir para a esquerda ou para a direita.</p>
+
+<p><a class="p_ident" id="p_WSmWl+T57T" href="#p_WSmWl+T57T" tabindex="-1" role="presentation"></a>Você também precisará de um loop para a espiral (4). Se desenhar uma série de pontos, com cada ponto se movendo junto de um círculo ao redor do centro da espiral, você criará um círculo. Se, durante o loop, você variar o raio do círculo pelo qual você está definindo o ponto atual e circular mais do que uma vez, o resultado é uma espiral.</p>
+
+<p><a class="p_ident" id="p_I5GZVhcyO4" href="#p_I5GZVhcyO4" tabindex="-1" role="presentation"></a>A estrela (5) retratada é criada com as linhas do método <code>quadraticCurveTo</code>. Você também pode desenhar uma com linhas retas. Divida um círculo em oito peças para uma estrela de oito pontos, ou a quantidade de peças que queira. Desenhe linhas entre esses pontos, fazendo-as curvar na direção do centro da estrela. Com o método <code>quadraticCurveTo</code>, você pode usar o centro como ponto de controle.</p>
+
+</div></div>
+
+<h3 id="exercise_pie_chart"><a class="i_ident" id="i_6GpT8CRmWi" href="#i_6GpT8CRmWi" tabindex="-1" role="presentation"></a>O gráfico de pizza</h3>
+
+<p><a class="p_ident" id="p_K5RxUt+1VA" href="#p_K5RxUt+1VA" tabindex="-1" role="presentation"></a><a href="17_canvas.html#pie_chart">Antes</a>, nesse capítulo, vimos um programa de exemplo que desenhava um gráfico de pizza. Modifique esse programa para que o nome de cada categoria seja mostrado próximo à fatia que o representa. Tente encontrar uma forma bonita de automaticamente posicionar esse texto que poderia funcionar também pra outros conjuntos de dados. Você pode presumir que as categorias são grandes o suficiente para deixar bastante espaço para seus rótulos.</p>
+
+<p><a class="p_ident" id="p_9oQx66Y2+P" href="#p_9oQx66Y2+P" tabindex="-1" role="presentation"></a>Você pode precisar do <code>Math.sin</code> e <code>Math.cos</code> novamente, que estão descritos no <a href="14_dom.html#sin_cos">Capítulo 14</a>.</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_V1H2QDM8Zd" href="#c_V1H2QDM8Zd" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span> <span class="cm-attribute">width</span>=<span class="cm-string">&quot;600&quot;</span> <span class="cm-attribute">height</span>=<span class="cm-string">&quot;300&quot;</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+  <span class="cm-keyword">let</span> <span class="cm-def">total</span> <span class="cm-operator">=</span> <span class="cm-variable">results</span>
+    .<span class="cm-property">reduce</span>((<span class="cm-def">sum</span>, {<span class="cm-def">count</span>}) <span class="cm-operator">=&gt;</span> <span class="cm-variable-2">sum</span> <span class="cm-operator">+</span> <span class="cm-variable-2">count</span>, <span class="cm-number">0</span>);
+  <span class="cm-keyword">let</span> <span class="cm-def">currentAngle</span> <span class="cm-operator">=</span> <span class="cm-operator">-</span><span class="cm-number">0.5</span> <span class="cm-operator">*</span> <span class="cm-variable">Math</span>.<span class="cm-property">PI</span>;
+  <span class="cm-keyword">let</span> <span class="cm-def">centerX</span> <span class="cm-operator">=</span> <span class="cm-number">300</span>, <span class="cm-def">centerY</span> <span class="cm-operator">=</span> <span class="cm-number">150</span>;
+
+  <span class="cm-comment">// Coloque o código para desenhar os rótulos das fatias nesse loop.</span>
+  <span class="cm-keyword">for</span> (<span class="cm-keyword">let</span> <span class="cm-def">result</span> <span class="cm-keyword">of</span> <span class="cm-variable">results</span>) {
+    <span class="cm-keyword">let</span> <span class="cm-def">sliceAngle</span> <span class="cm-operator">=</span> (<span class="cm-variable">result</span>.<span class="cm-property">count</span> <span class="cm-operator">/</span> <span class="cm-variable">total</span>) <span class="cm-operator">*</span> <span class="cm-number">2</span> <span class="cm-operator">*</span> <span class="cm-variable">Math</span>.<span class="cm-property">PI</span>;
+    <span class="cm-variable">cx</span>.<span class="cm-property">beginPath</span>();
+    <span class="cm-variable">cx</span>.<span class="cm-property">arc</span>(<span class="cm-variable">centerX</span>, <span class="cm-variable">centerY</span>, <span class="cm-number">100</span>,
+           <span class="cm-variable">currentAngle</span>, <span class="cm-variable">currentAngle</span> <span class="cm-operator">+</span> <span class="cm-variable-2">sliceAngle</span>);
+    <span class="cm-variable">currentAngle</span> <span class="cm-operator">+=</span> <span class="cm-variable-2">sliceAngle</span>;
+    <span class="cm-variable">cx</span>.<span class="cm-property">lineTo</span>(<span class="cm-variable">centerX</span>, <span class="cm-variable">centerY</span>);
+    <span class="cm-variable">cx</span>.<span class="cm-property">fillStyle</span> <span class="cm-operator">=</span> <span class="cm-variable">result</span>.<span class="cm-property">color</span>;
+    <span class="cm-variable">cx</span>.<span class="cm-property">fill</span>();
+  }
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<div class="solution"><div class="solution-text">
+
+<p><a class="p_ident" id="p_6z/NUoLA63" href="#p_6z/NUoLA63" tabindex="-1" role="presentation"></a>Você vai precisar chamar o <code>fillText</code> e definir as propriedades <code>textAlign</code> e <code>textBaseline</code> do contexto de forma que faça o texto acabar onde você quer.</p>
+
+<p><a class="p_ident" id="p_7PEafuYun4" href="#p_7PEafuYun4" tabindex="-1" role="presentation"></a>Uma forma sensível de posicionar os rótulos seria colocar o texto na linha que vem do centro da pizza até o meio da fatia. Você não quer colocar o texto diretamente do lado da pizza, mas sim mover o texto para o lado dela com alguns pixels de distância.</p>
+
+<p><a class="p_ident" id="p_e+pNJoBBA5" href="#p_e+pNJoBBA5" tabindex="-1" role="presentation"></a>O ângulo dessa linha é <code>currentAngle + 0.<wbr>5 * sliceAngle</code>. O código a seguir encontra uma posição nessa linha de 120 pixels a partir do centro:</p>
+
+<pre class="snippet cm-s-default" data-language="javascript" ><a class="c_ident" id="c_7kVY28rLLf" href="#c_7kVY28rLLf" tabindex="-1" role="presentation"></a><span class="cm-keyword">let</span> <span class="cm-def">middleAngle</span> <span class="cm-operator">=</span> <span class="cm-variable">currentAngle</span> <span class="cm-operator">+</span> <span class="cm-number">0.5</span> <span class="cm-operator">*</span> <span class="cm-variable">sliceAngle</span>;
+<span class="cm-keyword">let</span> <span class="cm-def">textX</span> <span class="cm-operator">=</span> <span class="cm-variable">Math</span>.<span class="cm-property">cos</span>(<span class="cm-variable">middleAngle</span>) <span class="cm-operator">*</span> <span class="cm-number">120</span> <span class="cm-operator">+</span> <span class="cm-variable">centerX</span>;
+<span class="cm-keyword">let</span> <span class="cm-def">textY</span> <span class="cm-operator">=</span> <span class="cm-variable">Math</span>.<span class="cm-property">sin</span>(<span class="cm-variable">middleAngle</span>) <span class="cm-operator">*</span> <span class="cm-number">120</span> <span class="cm-operator">+</span> <span class="cm-variable">centerY</span>;</pre>
+
+<p><a class="p_ident" id="p_QQ//HV+jnk" href="#p_QQ//HV+jnk" tabindex="-1" role="presentation"></a>Para o <code>textBaseline</code>, o valor <code>&quot;middle&quot;</code> provavelmente é apropriado quando usamos essa abordagem. O que usar no <code>textAlign</code> depende de qual lado do círculo estamos. Se estivermos na esquerda, ela deve ser <code>&quot;right&quot;</code>, e se for na direita, deve ser <code>&quot;left&quot;</code>, para que o texto seja posicionado do lado correto da pizza.</p>
+
+<p><a class="p_ident" id="p_f2W531ED1k" href="#p_f2W531ED1k" tabindex="-1" role="presentation"></a>Se não tiver certeza sobre como descobrir em qual lado do círculo determinado ângulo está, veja a explicação de <code>Math.cos</code> no <a href="14_dom.html#sin_cos">Capítulo 14</a>. O cosseno de um ângulo nos diz a qual coordenada x ele corresponde, o que nos diz exatamente de qual lado do círculo estamos.</p>
+
+</div></div>
+
+<h3><a class="i_ident" id="i_wTXAxVJ+PZ" href="#i_wTXAxVJ+PZ" tabindex="-1" role="presentation"></a>Uma bola quicando</h3>
+
+<p><a class="p_ident" id="p_IZZntn9w5X" href="#p_IZZntn9w5X" tabindex="-1" role="presentation"></a>Use a técnica <code>requestAnimationFrame</code> que vimos no <a href="14_dom.html#animationFrame">Capítulo 14</a> e no <a href="16_game.html#runAnimation">Capítulo 16</a> para desenhar uma caixa com uma bola quicando nela. A bola se move a uma velocidade constante e se afasta de cada lado da caixa quando toca nelas.</p>
+
+<pre class="snippet cm-s-default" data-language="text/html" ><a class="c_ident" id="c_pDXlh6d+WO" href="#c_pDXlh6d+WO" tabindex="-1" role="presentation"></a><span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">canvas</span> <span class="cm-attribute">width</span>=<span class="cm-string">&quot;400&quot;</span> <span class="cm-attribute">height</span>=<span class="cm-string">&quot;400&quot;</span><span class="cm-tag cm-bracket">&gt;</span><span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">canvas</span><span class="cm-tag cm-bracket">&gt;</span>
+<span class="cm-tag cm-bracket">&lt;</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span>
+  <span class="cm-keyword">let</span> <span class="cm-def">cx</span> <span class="cm-operator">=</span> <span class="cm-variable">document</span>.<span class="cm-property">querySelector</span>(<span class="cm-string">&quot;canvas&quot;</span>).<span class="cm-property">getContext</span>(<span class="cm-string">&quot;2d&quot;</span>);
+
+  <span class="cm-keyword">let</span> <span class="cm-def">lastTime</span> <span class="cm-operator">=</span> <span class="cm-atom">null</span>;
+  <span class="cm-keyword">function</span> <span class="cm-def">frame</span>(<span class="cm-def">time</span>) {
+    <span class="cm-keyword">if</span> (<span class="cm-variable">lastTime</span> <span class="cm-operator">!=</span> <span class="cm-atom">null</span>) {
+      <span class="cm-variable">updateAnimation</span>(<span class="cm-variable">Math</span>.<span class="cm-property">min</span>(<span class="cm-number">100</span>, <span class="cm-variable-2">time</span> <span class="cm-operator">-</span> <span class="cm-variable">lastTime</span>) <span class="cm-operator">/</span> <span class="cm-number">1000</span>);
+    }
+    <span class="cm-variable">lastTime</span> <span class="cm-operator">=</span> <span class="cm-variable-2">time</span>;
+    <span class="cm-variable">requestAnimationFrame</span>(<span class="cm-variable">frame</span>);
+  }
+  <span class="cm-variable">requestAnimationFrame</span>(<span class="cm-variable">frame</span>);
+
+  <span class="cm-keyword">function</span> <span class="cm-def">updateAnimation</span>(<span class="cm-def">step</span>) {
+    <span class="cm-comment">// Seu código aqui.</span>
+  }
+<span class="cm-tag cm-bracket">&lt;/</span><span class="cm-tag">script</span><span class="cm-tag cm-bracket">&gt;</span></pre>
+
+<div class="solution"><div class="solution-text">
+
+<p><a class="p_ident" id="p_uB83l8UVim" href="#p_uB83l8UVim" tabindex="-1" role="presentation"></a>É fácil desenhar uma caixa com o <code>strokeRect</code>. Defina um valor que seja seu tamanho ou defina dois valores se a largura e altura da caixa forem diferentes. Para criar uma bola redonda, faça um caminho e use <code>arc(x, y, radius, 0, 7)</code>, que cria um arco indo de zero a mais do que um círculo completo. E então preencha o caminho.</p>
+
+<p><a class="p_ident" id="p_zxXNliDG8U" href="#p_zxXNliDG8U" tabindex="-1" role="presentation"></a>Para modelar a posição e a velocidade da bola, você pode usar a classe <code>Vec</code> do <a href="16_game.html#vector">Capítulo 16</a> (que está disponível nessa página). Dê uma velocidade inicial, preferivelmente uma que não seja puramente vertical ou horizontal, e para cada quadro multiplique essa velocidade pela quantidade de tempo percorrido. Quando a bola chegar perto demais de uma parede vertical, inverta o componente x em sua velocidade. Da mesma forma, inverta o componente y quando chegar a uma parede horizontal.</p>
+
+<p><a class="p_ident" id="p_OQkGh/Yty3" href="#p_OQkGh/Yty3" tabindex="-1" role="presentation"></a>Após descobrir a nova posição e velocidade da bola, use <code>clearRect</code> para deletar a cena e redesenhá-la usando a nova posição.</p>
+
+</div></div>
+
+<h3><a class="i_ident" id="i_101IoHL+9B" href="#i_101IoHL+9B" tabindex="-1" role="presentation"></a>Espelhamento pré-computacionado</h3>
+
+<p><a class="p_ident" id="p_ZKUQVeamHJ" href="#p_ZKUQVeamHJ" tabindex="-1" role="presentation"></a>Algo infeliz sobre transformações é que elas desaceleram o desenho de bitmaps. A posição e tamanho de cada pixel tem que ser transformado, e apesar de ser possível que os navegadores fiquem mais inteligentes sobre essa transformação no futuro, eles atualmente causam um aumento mensurável no tempo que leva para desenhar um bitmap.</p>
+
+<p><a class="p_ident" id="p_dQZgHyVz8d" href="#p_dQZgHyVz8d" tabindex="-1" role="presentation"></a>Em um jogo como o nosso, onde estamos desenhando apenas uma sprite transformada, isso não é problema. Mas imagine que precisamos desenhar centenas de personagens ou milhares de partículas rotacionando a partir de uma explosão.</p>
+
+<p><a class="p_ident" id="p_t5d8JrVG5N" href="#p_t5d8JrVG5N" tabindex="-1" role="presentation"></a>Pense em uma forma que permita que desenhamos um personagem invertido sem carregar arquivos de imagem adicionais e sem ter que usar o método <code>drawImage</code> transformado em cada imagem.</p>
+
+<div class="solution"><div class="solution-text">
+
+<p><a class="p_ident" id="p_z98K8JdM4F" href="#p_z98K8JdM4F" tabindex="-1" role="presentation"></a>A chave para a solução é o fato de que podemos usar um elemento de canvas como imagem fonte quando usamos o <code>drawImage</code>. É possível criar um elemento <code>&lt;canvas&gt;</code> a mais, sem adicioná-lo ao documento, e desenhar nossas sprites invertidas uma vez. Quando desenharmos um quadro de verdade, só copiamos os sprites já invertidos para o canvas principal.</p>
+
+<p><a class="p_ident" id="p_bZLsMKHDaD" href="#p_bZLsMKHDaD" tabindex="-1" role="presentation"></a>Teríamos que tomar cuidado porque imagens não carregam instantaneamente. Temos que inverter a imagem apenas uma vez, e se fizermos isso antes da imagem carregar, ela não vai desenhar nada. Um <em>handler</em> <code>&quot;load&quot;</code> na imagem pode ser usado para desenhar as imagens invertidas no canvas extra. Esse canvas pode ser usado como uma forma de desenhá-lo imediatamente (ele será simplesmente branco até desenharmos o personagem nele).</p>
+
+</div></div>
+
+<nav><a href="16_game.html" title="previous chapter">◀</a> 
+  <a href="index.html" title="cover">◆</a> <a href="18_http.html" title="next chapter">▶</a>
+</nav>
+</article>

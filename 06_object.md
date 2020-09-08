@@ -4,9 +4,8 @@
 
 {{quote {author: "Barbara Liskov", title: "Programming with Abstract Data Types", chapter: true}
 
-An abstract data type is realized by writing a special kind of program
-[…] which defines the type in terms of the operations which can be
-performed on it.
+Um tipo de dado abstrato ocorre ao escrever um tipo  especial de programa
+[…] que define o tipo em termos de operações que podem ser executadas por ele.
 
 quote}}
 
@@ -14,15 +13,10 @@ quote}}
 
 {{figure {url: "img/chapter_picture_6.jpg", alt: "Picture of a rabbit with its proto-rabbit", chapter: framed}}}
 
-[Chapter ?](data) introduced JavaScript's objects. In programming
-culture, we have a thing called _((object-oriented programming))_, a
-set of techniques that use objects (and related concepts) as the
-central principle of program organization.
+[Chapter ?](data) introduziu os objetos do JavaScript. Na cultura da programação nós temos algo chamado _((object-oriented programming))_, um conjunto de técnicas que usam objetos (e  conceitos relacionados) como o princípio central da organização do programa.
 
-Though no one really agrees on its precise definition, object-oriented
-programming has shaped the design of many programming languages,
-including JavaScript. This chapter will describe the way these ideas
-can be applied in JavaScript.
+Embora não haja consenso quanto a definição precisa, programação orientada a objeto tem modelado o design de muitas linguagens de programação, incluindo o JavaScript. 
+Este capítulo descreverá o jeito pelo qual essas ideias podem ser aplicadas em JavaScript.
 
 ## Encapsulation
 
