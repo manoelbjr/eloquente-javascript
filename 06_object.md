@@ -11,41 +11,30 @@ quote}}
 
 {{index "Liskov, Barbara", "abstract data type"}}
 
-{{figure {url: "img/chapter_picture_6.jpg", alt: "Picture of a rabbit with its proto-rabbit", chapter: framed}}}
+{{figure {url: "img/chapter_picture_6.jpg", alt: "Figura de um coelho com seu proto-coelho", chapter: framed}}}
 
 [Chapter ?](data) introduziu os objetos do JavaScript. Na cultura da programação nós temos algo chamado _((object-oriented programming))_, um conjunto de técnicas que usam objetos (e  conceitos relacionados) como o princípio central da organização do programa.
 
 Embora não haja consenso quanto a definição precisa, programação orientada a objeto tem modelado o design de muitas linguagens de programação, incluindo o JavaScript. 
-Este capítulo descreverá o jeito pelo qual essas ideias podem ser aplicadas em JavaScript.
+Este capítulo descreverá o modo pelo qual essas ideias podem ser aplicadas em JavaScript.
 
-## Encapsulation
+## Encapsulamento
 
 {{index encapsulation, isolation, modularity}}
 
-The core idea in object-oriented programming is to divide programs
-into smaller pieces and make each piece responsible for managing its
-own state.
+A ideia principal da programação orientada a objetos é dividir programas em pedaços menores  e tornar cada pedaço responsável por gerenciar seu próprio estado.
 
-This way, some knowledge about the way a piece of the program works
-can be kept _local_ to that piece. Someone working on the rest of the
-program does not have to remember or even be aware of that knowledge.
-Whenever these local details change, only the code directly around it
-needs to be updated.
+Dessa maneira, algum conhecimento sobre o jeito que um pedaço de código funciona pode ser mantido _localmente_ naquele trecho. Alguém trabalhando no restante do programa não precisa lembrar ou ter consciência desse conhecimento.
+Sempre que esses detalhes mudarem, apenas o código que está diretamente ao redor precisará ser atualizado.
 
 {{id interface}}
 {{index [interface, object]}}
 
-Different pieces of such a program interact with each other through
-_interfaces_, limited sets of functions or bindings that provide
-useful functionality at a more abstract level, hiding their precise
-implementation.
+Diferentes pedaços de um determinado programa interagem uns com os outros através de _interfaces_, conjuntos limitados de funções ou  _bindings_ que provêm uma funcionalidade útil a um nível mais abstrato, esconder a implementação precisa deles.
 
 {{index "public properties", "private properties", "access control", [method, interface]}}
 
-Such program pieces are modeled using ((object))s. Their interface
-consists of a specific set of methods and properties. Properties
-that are part of the interface are called _public_. The others, which
-outside code should not be touching, are called _private_.
+Tais pedaços são modelados usando ((objecto))s ((object))s.Sua interface consiste de um conjunto específico de métodos e propriedades. Propriedades que são parte da interface são chamadas interfaces _públicas_, ou _public_. As outras, das quais o código externo não deve tocar são chamadas _privadas_ ou _private_.
 
 {{index "underscore character"}}
 
